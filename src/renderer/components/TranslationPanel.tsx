@@ -6,6 +6,7 @@ import { SettingsModal } from './SettingsModal'
 import { HistoryPanel } from './HistoryPanel'
 import { FavoritesPanel } from './FavoritesPanel'
 import { PROVIDER_LABELS } from '../../main/providers'
+import type { LanguageCode, ProviderTranslationResult, TranslationResult } from '../../shared/types'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
@@ -19,6 +20,7 @@ export function TranslationPanel() {
     sourceLang,
     targetLang,
     result,
+    results,
     isLoading,
     error,
     shouldSkipNextAutoTranslate,
@@ -31,16 +33,13 @@ export function TranslationPanel() {
   } = useTranslationStore()
   const { settings, isLoaded } = useSettingsStore()
   const { loadHistory } = useHistoryStore()
-  const { favorites, addFavorite, loadFavorites } = useFavoritesStore()
+  const { loadFavorites } = useFavoritesStore()
   const [showSettings, setShowSettings] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [showFavorites, setShowFavorites] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [isSpeaking, setIsSpeaking] = useState(false)
   const [isOcrProcessing, setIsOcrProcessing] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const translateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastRequestRef = useRef({ inputText, sourceLang, targetLang })
 
   useEffect(() => {
@@ -48,20 +47,8 @@ export function TranslationPanel() {
     void loadFavorites()
     return () => {
       if (translateTimeoutRef.current) clearTimeout(translateTimeoutRef.current)
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
     }
   }, [loadHistory, loadFavorites])
-
-  useEffect(() => {
-    return () => {
-      window.speechSynthesis.cancel()
-    }
-  }, [])
-
-  useEffect(() => {
-    window.speechSynthesis.cancel()
-    setIsSpeaking(false)
-  }, [result?.translatedText, targetLang])
 
   // Auto-switch target language based on detected input text (only when sourceLang is 'auto')
   useEffect(() => {
@@ -106,84 +93,6 @@ export function TranslationPanel() {
     }, 600)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputText, sourceLang, targetLang])
-
-  const handleCopy = async (text: string) => {
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
-    copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500)
-  }
-
-  const handleSpeak = () => {
-    if (!result?.translatedText) return
-
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel()
-      setIsSpeaking(false)
-      return
-    }
-
-    const langMap: Record<string, string> = {
-      zh: 'zh-CN',
-      en: 'en-US',
-      ja: 'ja-JP',
-    }
-
-    const utterance = new SpeechSynthesisUtterance(result.translatedText)
-    utterance.lang = langMap[targetLang] || 'zh-CN'
-    utterance.onend = () => setIsSpeaking(false)
-    utterance.onerror = () => setIsSpeaking(false)
-
-    window.speechSynthesis.speak(utterance)
-    setIsSpeaking(true)
-  }
-
-  const handleFavorite = () => {
-    if (!result || !inputText.trim()) return
-    const isFavorited = favorites.some(
-      (f) => f.sourceText === inputText.trim() && f.translatedText === result.translatedText
-    )
-    if (isFavorited) return
-
-    const record = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      sourceText: inputText.trim(),
-      translatedText: result.translatedText,
-      sourceLang,
-      targetLang,
-      detectedSourceLang: result.detectedSourceLang,
-      provider: settings.defaultProvider,
-      timestamp: Date.now(),
-      note: '',
-    }
-    void addFavorite(record)
-  }
-
-  const handleExportResult = async () => {
-    if (!result?.translatedText) return
-
-    const dateStr = new Date().toISOString().slice(0, 10)
-    const fileName = `translated_${dateStr}.txt`
-    const content = [
-      '【原文】',
-      inputText.trim(),
-      '',
-      '【译文】',
-      result.translatedText,
-      result.pronunciation ? `\n【读音】${result.pronunciation}` : '',
-      result.alternatives?.length ? `\n【备选译法】\n${result.alternatives.join('\n')}` : '',
-    ].join('\n')
-
-    try {
-      const saveResult = await window.electronAPI.saveTextFile({ fileName, content })
-      if (saveResult.canceled) return
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      saveResult.filePath && console.log('已保存到:', saveResult.filePath)
-    } catch (err) {
-      console.error('导出译文失败:', err)
-      alert(err instanceof Error ? err.message : '导出译文失败')
-    }
-  }
 
   const handleDragOver = (e: React.DragEvent<HTMLTextAreaElement>) => {
     e.preventDefault()
@@ -284,7 +193,11 @@ export function TranslationPanel() {
 
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400 dark:text-gray-500">
-            {isLoaded ? (PROVIDER_LABELS[settings.defaultProvider] || settings.defaultProvider) : '加载中...'}
+            {isLoaded
+              ? settings.comparisonMode
+                ? '对比翻译'
+                : PROVIDER_LABELS[settings.defaultProvider] || settings.defaultProvider
+              : '加载中...'}
           </span>
           <button
             onClick={() => setShowFavorites(true)}
@@ -384,80 +297,26 @@ export function TranslationPanel() {
                   </button>
                 </div>
               </div>
+            ) : results ? (
+              <div className="space-y-4">
+                {results.map((item) => (
+                  <ProviderResultCard
+                    key={item.provider}
+                    item={item}
+                    inputText={inputText}
+                    sourceLang={sourceLang}
+                    targetLang={targetLang}
+                  />
+                ))}
+              </div>
             ) : result ? (
               <div className="space-y-4">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[15px] leading-relaxed text-gray-800 dark:text-gray-100 whitespace-pre-wrap">{result.translatedText}</p>
-                  <div className="flex shrink-0 gap-1">
-                    <button
-                      onClick={() => void handleSpeak()}
-                      className={`
-                        p-1.5 rounded-md transition-colors
-                        ${isSpeaking
-                          ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                          : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'}
-                      `}
-                      title={isSpeaking ? '停止朗读' : '朗读译文'}
-                    >
-                      {isSpeaking ? <Square size={14} fill="currentColor" /> : <Volume2 size={16} />}
-                    </button>
-                    <button
-                      onClick={() => void handleFavorite()}
-                      className={`
-                        p-1.5 rounded-md transition-colors
-                        ${favorites.some((f) => f.sourceText === inputText.trim() && f.translatedText === result.translatedText)
-                          ? 'text-yellow-500 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
-                          : 'text-gray-400 dark:text-gray-500 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'}
-                      `}
-                      title="收藏"
-                    >
-                      <Star size={16} />
-                    </button>
-                    <button
-                      onClick={() => void handleExportResult()}
-                      className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-colors"
-                      title="导出译文"
-                    >
-                      <FileDown size={16} />
-                    </button>
-                    <button
-                      onClick={() => void handleCopy(result.translatedText)}
-                      className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
-                      title="复制译文"
-                    >
-                      {copied ? <Check size={16} /> : <Copy size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                {result.pronunciation && (
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    <span className="font-medium">读音：</span> {result.pronunciation}
-                  </div>
-                )}
-
-                {result.detectedSourceLang && sourceLang === 'auto' && (
-                  <div className="text-xs text-gray-400 dark:text-gray-500">
-                    检测到：{getLanguageLabel(result.detectedSourceLang)}
-                  </div>
-                )}
-
-                {result.alternatives && result.alternatives.length > 0 && (
-                  <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">备选译法</p>
-                    <div className="space-y-1">
-                      {result.alternatives.map((alt, index) => (
-                        <div
-                          key={index}
-                          className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 px-2 py-1 rounded"
-                          onClick={() => void handleCopy(alt)}
-                        >
-                          {alt}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <SingleResultView
+                  result={result}
+                  inputText={inputText}
+                  sourceLang={sourceLang}
+                  targetLang={targetLang}
+                />
               </div>
             ) : (
               <div className="flex items-center justify-center h-full">
@@ -517,4 +376,326 @@ function detectInputLanguage(text: string): 'zh' | 'en' | 'ja' | null {
   if (englishCount / meaningful >= 0.5) return 'en'
 
   return null
+}
+
+interface SingleResultViewProps {
+  result: TranslationResult
+  inputText: string
+  sourceLang: 'auto' | LanguageCode
+  targetLang: LanguageCode
+}
+
+function SingleResultView({ result, inputText, sourceLang, targetLang }: SingleResultViewProps) {
+  const { settings } = useSettingsStore()
+  const { favorites, addFavorite } = useFavoritesStore()
+  const [copied, setCopied] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleCopy = async (text: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+    copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500)
+  }
+
+  const handleSpeak = () => {
+    if (!result.translatedText) return
+
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+      return
+    }
+
+    const langMap: Record<string, string> = {
+      zh: 'zh-CN',
+      en: 'en-US',
+      ja: 'ja-JP',
+    }
+
+    const utterance = new SpeechSynthesisUtterance(result.translatedText)
+    utterance.lang = langMap[targetLang] || 'zh-CN'
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
+
+    window.speechSynthesis.speak(utterance)
+    setIsSpeaking(true)
+  }
+
+  const handleFavorite = () => {
+    if (!inputText.trim()) return
+    const trimmedText = inputText.trim()
+    const isFavorited = favorites.some(
+      (f) => f.sourceText === trimmedText && f.translatedText === result.translatedText
+    )
+    if (isFavorited) return
+
+    const record = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      sourceText: trimmedText,
+      translatedText: result.translatedText,
+      sourceLang,
+      targetLang,
+      detectedSourceLang: result.detectedSourceLang,
+      provider: settings.defaultProvider,
+      timestamp: Date.now(),
+      note: '',
+    }
+    void addFavorite(record)
+  }
+
+  const handleExportResult = async () => {
+    if (!result.translatedText) return
+
+    const dateStr = new Date().toISOString().slice(0, 10)
+    const fileName = `translated_${dateStr}.txt`
+    const content = [
+      '【原文】',
+      inputText.trim(),
+      '',
+      '【译文】',
+      result.translatedText,
+      result.pronunciation ? `\n【读音】${result.pronunciation}` : '',
+      result.alternatives?.length ? `\n【备选译法】\n${result.alternatives.join('\n')}` : '',
+    ].join('\n')
+
+    try {
+      const saveResult = await window.electronAPI.saveTextFile({ fileName, content })
+      if (saveResult.canceled) return
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      saveResult.filePath && console.log('已保存到:', saveResult.filePath)
+    } catch (err) {
+      console.error('导出译文失败:', err)
+      alert(err instanceof Error ? err.message : '导出译文失败')
+    }
+  }
+
+  return (
+    <>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[15px] leading-relaxed text-gray-800 dark:text-gray-100 whitespace-pre-wrap">
+          {result.translatedText}
+        </p>
+        <div className="flex shrink-0 gap-1">
+          <button
+            onClick={() => void handleSpeak()}
+            className={`
+              p-1.5 rounded-md transition-colors
+              ${isSpeaking
+                ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'}
+            `}
+            title={isSpeaking ? '停止朗读' : '朗读译文'}
+          >
+            {isSpeaking ? <Square size={14} fill="currentColor" /> : <Volume2 size={16} />}
+          </button>
+          <button
+            onClick={() => void handleFavorite()}
+            className={`
+              p-1.5 rounded-md transition-colors
+              ${favorites.some((f) => f.sourceText === inputText.trim() && f.translatedText === result.translatedText)
+                ? 'text-yellow-500 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
+                : 'text-gray-400 dark:text-gray-500 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'}
+            `}
+            title="收藏"
+          >
+            <Star size={16} />
+          </button>
+          <button
+            onClick={() => void handleExportResult()}
+            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-colors"
+            title="导出译文"
+          >
+            <FileDown size={16} />
+          </button>
+          <button
+            onClick={() => void handleCopy(result.translatedText)}
+            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+            title="复制译文"
+          >
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+          </button>
+        </div>
+      </div>
+
+      {result.pronunciation && (
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          <span className="font-medium">读音：</span> {result.pronunciation}
+        </div>
+      )}
+
+      {result.detectedSourceLang && sourceLang === 'auto' && (
+        <div className="text-xs text-gray-400 dark:text-gray-500">
+          检测到：{getLanguageLabel(result.detectedSourceLang)}
+        </div>
+      )}
+
+      {result.alternatives && result.alternatives.length > 0 && (
+        <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">备选译法</p>
+          <div className="space-y-1">
+            {result.alternatives.map((alt, index) => (
+              <div
+                key={index}
+                className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 px-2 py-1 rounded"
+                onClick={() => void handleCopy(alt)}
+              >
+                {alt}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+interface ProviderResultCardProps {
+  item: ProviderTranslationResult
+  inputText: string
+  sourceLang: 'auto' | LanguageCode
+  targetLang: LanguageCode
+}
+
+function ProviderResultCard({ item, inputText, sourceLang, targetLang }: ProviderResultCardProps) {
+  const { favorites, addFavorite } = useFavoritesStore()
+  const [copied, setCopied] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleCopy = async (text: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+    copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500)
+  }
+
+  const handleSpeak = (text: string) => {
+    if (!text) return
+
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+      return
+    }
+
+    const langMap: Record<string, string> = {
+      zh: 'zh-CN',
+      en: 'en-US',
+      ja: 'ja-JP',
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = langMap[targetLang] || 'zh-CN'
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
+
+    window.speechSynthesis.speak(utterance)
+    setIsSpeaking(true)
+  }
+
+  const handleFavorite = () => {
+    if (!item.result || !inputText.trim()) return
+    const trimmedText = inputText.trim()
+    const isFavorited = favorites.some(
+      (f) => f.sourceText === trimmedText && f.translatedText === item.result!.translatedText
+    )
+    if (isFavorited) return
+
+    const record = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      sourceText: trimmedText,
+      translatedText: item.result.translatedText,
+      sourceLang,
+      targetLang,
+      detectedSourceLang: item.result.detectedSourceLang,
+      provider: item.provider,
+      timestamp: Date.now(),
+      note: '',
+    }
+    void addFavorite(record)
+  }
+
+  return (
+    <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-800 dark:text-gray-100">
+            {PROVIDER_LABELS[item.provider] || item.provider}
+          </span>
+          {item.isLoading && (
+            <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          )}
+          {item.error && (
+            <span className="text-xs text-red-500">失败</span>
+          )}
+        </div>
+        {item.result && (
+          <div className="flex shrink-0 gap-1">
+            <button
+              onClick={() => void handleSpeak(item.result!.translatedText)}
+              className={`
+                p-1 rounded-md transition-colors
+                ${isSpeaking
+                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'}
+              `}
+              title={isSpeaking ? '停止朗读' : '朗读译文'}
+            >
+              {isSpeaking ? <Square size={12} fill="currentColor" /> : <Volume2 size={14} />}
+            </button>
+            <button
+              onClick={() => void handleFavorite()}
+              className={`
+                p-1 rounded-md transition-colors
+                ${favorites.some((f) => f.sourceText === inputText.trim() && f.translatedText === item.result!.translatedText)
+                  ? 'text-yellow-500 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'}
+              `}
+              title="收藏"
+            >
+              <Star size={14} />
+            </button>
+            <button
+              onClick={() => void handleCopy(item.result!.translatedText)}
+              className="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+              title="复制译文"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {item.isLoading && !item.result && (
+        <div className="flex items-center gap-2 py-2">
+          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-gray-400 dark:text-gray-500">正在翻译...</span>
+        </div>
+      )}
+
+      {item.error && (
+        <p className="text-sm text-red-500">{item.error}</p>
+      )}
+
+      {item.result && (
+        <div className="space-y-2">
+          <p className="text-[15px] leading-relaxed text-gray-800 dark:text-gray-100 whitespace-pre-wrap">
+            {item.result.translatedText}
+          </p>
+          {item.result.pronunciation && (
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              <span className="font-medium">读音：</span> {item.result.pronunciation}
+            </div>
+          )}
+          {item.result.detectedSourceLang && sourceLang === 'auto' && (
+            <div className="text-xs text-gray-400 dark:text-gray-500">
+              检测到：{getLanguageLabel(item.result.detectedSourceLang)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }

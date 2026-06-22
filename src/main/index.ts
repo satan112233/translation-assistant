@@ -6,7 +6,7 @@ import koffi from 'koffi'
 import Store from 'electron-store'
 import { createProvider } from './providers'
 import { MAX_HISTORY_COUNT } from '../shared/types'
-import type { TranslateRequest } from '../shared/types'
+import type { MultiTranslateRequest, MultiTranslateResult, TranslateRequest } from '../shared/types'
 import { createWorker, type Worker } from 'tesseract.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -448,6 +448,58 @@ ipcMain.handle('translate', async (_event, request: TranslateRequest) => {
     return result
   } catch (error) {
     console.error('[main] translate error:', error)
+    throw error
+  }
+})
+
+ipcMain.handle('translate-multi', async (_event, request: MultiTranslateRequest) => {
+  try {
+    console.log(
+      '[main] translate-multi request:',
+      request.providers.map((p) => p.provider).join(', '),
+      request.sourceLang,
+      '->',
+      request.targetLang
+    )
+
+    const settled = await Promise.allSettled(
+      request.providers.map(async ({ provider, config }) => {
+        const p = createProvider(provider, config)
+        const result = await p.translate({
+          text: request.text,
+          sourceLang: request.sourceLang,
+          targetLang: request.targetLang,
+        })
+        return { provider, result }
+      })
+    )
+
+    const results: MultiTranslateResult['results'] = settled.map((item, index) => {
+      const provider = request.providers[index].provider
+      if (item.status === 'fulfilled') {
+        return {
+          provider,
+          result: item.value.result,
+          error: null,
+          isLoading: false,
+        }
+      }
+      return {
+        provider,
+        result: null,
+        error: item.reason instanceof Error ? item.reason.message : String(item.reason),
+        isLoading: false,
+      }
+    })
+
+    console.log(
+      '[main] translate-multi results:',
+      results.map((r) => `${r.provider}=${r.error ? 'error' : 'ok'}`).join(', ')
+    )
+
+    return { results }
+  } catch (error) {
+    console.error('[main] translate-multi error:', error)
     throw error
   }
 })

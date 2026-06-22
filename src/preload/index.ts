@@ -1,10 +1,11 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import type { FavoriteRecord, HistoryRecord, ReadTextFileResult, SaveTextFileRequest, SaveTextFileResult, TranslateRequest, TranslationResult } from '../shared/types'
+import type { FavoriteRecord, HistoryRecord, MultiTranslateRequest, MultiTranslateResult, ReadTextFileResult, SaveTextFileRequest, SaveTextFileResult, TranslateRequest, TranslationResult } from '../shared/types'
 
 export interface ElectronAPI {
   getSettings: () => Promise<unknown>
   setSettings: (settings: unknown) => Promise<boolean>
   translate: (request: TranslateRequest) => Promise<TranslationResult>
+  translateMulti: (request: MultiTranslateRequest) => Promise<MultiTranslateResult>
   ocrImage: (imageBase64: string) => Promise<string>
   getFilePath: (file: File) => string
   readTextFile: (filePath: string) => Promise<ReadTextFileResult>
@@ -27,6 +28,7 @@ const api: ElectronAPI = {
   getSettings: () => ipcRenderer.invoke('get-settings'),
   setSettings: (settings) => ipcRenderer.invoke('set-settings', settings),
   translate: (request) => ipcRenderer.invoke('translate', request),
+  translateMulti: (request) => ipcRenderer.invoke('translate-multi', request),
   ocrImage: (imageBase64) => ipcRenderer.invoke('ocr-image', imageBase64),
   getFilePath: (file) => webUtils.getPathForFile(file),
   readTextFile: (filePath) => ipcRenderer.invoke('read-text-file', filePath),

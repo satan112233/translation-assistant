@@ -74,6 +74,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const activeProvider = draft.defaultProvider
   const activeConfig = draft.providers[activeProvider]
+  const configuredProviders = Object.entries(draft.providers)
+    .filter(([, config]) => config.apiKey.trim().length > 0)
+    .map(([key]) => key)
+  const canUseComparisonMode = configuredProviders.length >= 2
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -210,6 +214,49 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">对比翻译模式</label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">同时调用多个模型展示译文对比</p>
+              </div>
+              {canUseComparisonMode ? (
+                <button
+                  onClick={() => setDraft({ ...draft, comparisonMode: !draft.comparisonMode })}
+                  className={`
+                    relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                    ${draft.comparisonMode
+                      ? 'bg-blue-600'
+                      : 'bg-gray-300 dark:bg-gray-600'}
+                  `}
+                >
+                  <span
+                    className={`
+                      inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                      ${draft.comparisonMode ? 'translate-x-6' : 'translate-x-1'}
+                    `}
+                  />
+                </button>
+              ) : (
+                <span className="text-xs text-gray-400 dark:text-gray-500">需配置 ≥2 个模型</span>
+              )}
+            </div>
+
+            {!canUseComparisonMode && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                配置至少两个模型的 API Key 后可开启对比翻译。
+              </p>
+            )}
+
+            {canUseComparisonMode && draft.comparisonMode && (
+              <div className="p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  注意：对比翻译模式会同时调用多个模型，消耗更多 Token。
+                </p>
+              </div>
+            )}
           </div>
 
           {activeConfig && (

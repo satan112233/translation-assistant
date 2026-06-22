@@ -33,6 +33,25 @@ export interface AppSettings {
   popupTargetLang: LanguageCode
   clipboardMonitor: boolean
   shortcuts: ShortcutSettings
+  comparisonMode: boolean
+}
+
+export interface MultiTranslateRequest {
+  text: string
+  sourceLang: 'auto' | LanguageCode
+  targetLang: LanguageCode
+  providers: { provider: string; config: ProviderConfig }[]
+}
+
+export interface ProviderTranslationResult {
+  provider: string
+  result: TranslationResult | null
+  error: string | null
+  isLoading: boolean
+}
+
+export interface MultiTranslateResult {
+  results: ProviderTranslationResult[]
 }
 
 export interface ReadTextFileResult {

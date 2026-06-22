@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AppSettings, FavoriteRecord, HistoryRecord, LanguageCode, TranslationResult } from '../../shared/types'
+import type { AppSettings, FavoriteRecord, HistoryRecord, LanguageCode, ProviderTranslationResult, TranslationResult } from '../../shared/types'
 import { MAX_HISTORY_COUNT } from '../../shared/types'
 import { DEFAULT_PROVIDER_CONFIGS, PROVIDER_LABELS } from '../../main/providers'
 
@@ -8,6 +8,7 @@ interface TranslationState {
   sourceLang: 'auto' | LanguageCode
   targetLang: LanguageCode
   result: TranslationResult | null
+  results: ProviderTranslationResult[] | null
   isLoading: boolean
   error: string | null
   shouldSkipNextAutoTranslate: boolean
@@ -60,6 +61,13 @@ const defaultSettings: AppSettings = {
   popupTargetLang: 'zh',
   clipboardMonitor: false,
   shortcuts: { ...DEFAULT_SHORTCUTS },
+  comparisonMode: false,
+}
+
+function getConfiguredProviders(settings: AppSettings): string[] {
+  return Object.entries(settings.providers)
+    .filter(([, config]) => config.apiKey.trim().length > 0)
+    .map(([key]) => key)
 }
 
 function mergeWithDefaults(settings: Partial<AppSettings>): AppSettings {
@@ -82,6 +90,7 @@ function mergeWithDefaults(settings: Partial<AppSettings>): AppSettings {
       ...defaultSettings.shortcuts,
       ...(settings.shortcuts || {}),
     },
+    comparisonMode: settings.comparisonMode ?? defaultSettings.comparisonMode,
   }
 }
 
@@ -211,6 +220,7 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
   sourceLang: 'auto',
   targetLang: 'en',
   result: null,
+  results: null,
   isLoading: false,
   error: null,
   shouldSkipNextAutoTranslate: false,
@@ -234,40 +244,93 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
     const settings = useSettingsStore.getState().settings
 
     if (!inputText.trim()) {
-      set({ result: null, error: null })
+      set({ result: null, results: null, error: null })
       return
     }
 
-    set({ isLoading: true, error: null, result: null })
+    const trimmedText = inputText.trim()
+    const configuredProviders = getConfiguredProviders(settings)
+    const useComparisonMode = settings.comparisonMode && configuredProviders.length >= 2
+
+    set({ isLoading: true, error: null, result: null, results: null })
 
     try {
-      const providerConfig = settings.providers[settings.defaultProvider]
-      if (!providerConfig) {
-        throw new Error(`未找到 Provider: ${PROVIDER_LABELS[settings.defaultProvider] || settings.defaultProvider}`)
+      if (useComparisonMode) {
+        // Initialize results with loading state for each provider
+        set({
+          results: configuredProviders.map((provider) => ({
+            provider,
+            result: null,
+            error: null,
+            isLoading: true,
+          })),
+        })
+
+        const multiResult = await window.electronAPI.translateMulti({
+          text: trimmedText,
+          sourceLang,
+          targetLang,
+          providers: configuredProviders.map((provider) => ({
+            provider,
+            config: settings.providers[provider],
+          })),
+        })
+
+        const results = multiResult.results
+        const successCount = results.filter((r) => r.result && !r.error).length
+
+        // Add history using default provider result if available, otherwise first success
+        const primaryResult =
+          results.find((r) => r.provider === settings.defaultProvider && r.result)?.result ??
+          results.find((r) => r.result)?.result
+
+        if (primaryResult) {
+          const historyRecord: HistoryRecord = {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            sourceText: trimmedText,
+            translatedText: primaryResult.translatedText,
+            sourceLang,
+            targetLang,
+            detectedSourceLang: primaryResult.detectedSourceLang,
+            provider: settings.defaultProvider,
+            timestamp: Date.now(),
+          }
+          void useHistoryStore.getState().addHistory(historyRecord)
+        }
+
+        set({
+          results,
+          isLoading: false,
+          error: successCount === 0 ? '所有模型翻译均失败，请检查 API Key 和网络' : null,
+        })
+      } else {
+        const providerConfig = settings.providers[settings.defaultProvider]
+        if (!providerConfig) {
+          throw new Error(`未找到 Provider: ${PROVIDER_LABELS[settings.defaultProvider] || settings.defaultProvider}`)
+        }
+
+        const result = await window.electronAPI.translate({
+          text: trimmedText,
+          sourceLang,
+          targetLang,
+          provider: settings.defaultProvider,
+          config: providerConfig,
+        })
+
+        const historyRecord: HistoryRecord = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          sourceText: trimmedText,
+          translatedText: result.translatedText,
+          sourceLang,
+          targetLang,
+          detectedSourceLang: result.detectedSourceLang,
+          provider: settings.defaultProvider,
+          timestamp: Date.now(),
+        }
+        void useHistoryStore.getState().addHistory(historyRecord)
+
+        set({ result, isLoading: false })
       }
-
-      const trimmedText = inputText.trim()
-      const result = await window.electronAPI.translate({
-        text: trimmedText,
-        sourceLang,
-        targetLang,
-        provider: settings.defaultProvider,
-        config: providerConfig,
-      })
-
-      const historyRecord: HistoryRecord = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-        sourceText: trimmedText,
-        translatedText: result.translatedText,
-        sourceLang,
-        targetLang,
-        detectedSourceLang: result.detectedSourceLang,
-        provider: settings.defaultProvider,
-        timestamp: Date.now(),
-      }
-      void useHistoryStore.getState().addHistory(historyRecord)
-
-      set({ result, isLoading: false })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '翻译失败', isLoading: false })
     }
@@ -281,6 +344,7 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
         translatedText: record.translatedText,
         detectedSourceLang: record.detectedSourceLang,
       },
+      results: null,
       error: null,
       isLoading: false,
       shouldSkipNextAutoTranslate: true,
