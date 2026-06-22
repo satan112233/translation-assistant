@@ -29,9 +29,11 @@ The project is structured around three Electron processes:
 
 The renderer communicates with the main process through these channels:
 
-- `get-settings` / `set-settings` — Load and persist app settings (API keys, provider config, window bounds, always-on-top state, theme, popup target language, clipboard monitor).
-- `translate` — Send translation parameters to the main process, which calls the LLM and returns the result.
+- `get-settings` / `set-settings` — Load and persist app settings (API keys, provider config, window bounds, always-on-top state, theme, popup target language, clipboard monitor, shortcuts, comparison mode).
+- `translate` — Send translation parameters to the main process, which calls a single LLM and returns the result.
+- `translate-multi` — Send parameters for multiple configured providers; the main process calls them in parallel and returns per-provider results.
 - `ocr-image` — Send a base64 image to the main process for OCR text recognition.
+- `read-text-file` / `save-text-file` — Read a dragged `.txt` / `.md` file or save translation result to disk.
 - `get-history` / `add-history` / `clear-history` / `delete-history-item` — Translation history management.
 - `get-favorites` / `add-favorite` / `delete-favorite` / `update-favorite-note` — Favorites / vocabulary book management.
 - `window-minimize` / `window-close` / `window-set-always-on-top` — Window controls.
@@ -41,9 +43,12 @@ The renderer communicates with the main process through these channels:
 1. User types or changes language selection in `TranslationPanel`.
 2. If sourceLang is 'auto', a language detection effect may auto-switch targetLang based on input text (zh→en, en→zh, ja→zh).
 3. A debounced effect calls `translate()` in the `useTranslationStore`.
-4. The store builds a `TranslateRequest` and calls `window.electronAPI.translate()`.
-5. The main process receives the request, constructs an `OpenAICompatibleProvider`, builds the system/user prompts, and calls the provider's `/chat/completions` endpoint.
+4. The store checks `settings.comparisonMode` and the number of configured providers (providers with a non-empty `apiKey`).
+   - In single-provider mode, it builds a `TranslateRequest` and calls `window.electronAPI.translate()`.
+   - In comparison mode (≥2 configured providers), it builds a `MultiTranslateRequest` and calls `window.electronAPI.translateMulti()`.
+5. The main process receives the request, constructs one or more `OpenAICompatibleProvider` instances, builds the system/user prompts, and calls each provider's `/chat/completions` endpoint.
 6. The provider parses the JSON response and returns `TranslationResult` back to the renderer.
+7. The renderer displays a single result or a card for each provider, depending on the mode.
 
 ### Provider System
 
@@ -75,6 +80,9 @@ Settings are stored with `electron-store` in the main process. On first load, th
 - Theme switching uses Tailwind's `darkMode: 'class'` strategy. The `useTheme` hook in `src/renderer/hooks/useTheme.ts` toggles the `.dark` class on `<html>` and listens to OS color-scheme changes in `system` mode.
 - Cross-selection translation uses `koffi` to call Windows `user32.dll` APIs and simulate `Ctrl+C` on the foreground window.
 - Auto target language switching: in `TranslationPanel` and `PopupPanel`, when `sourceLang === 'auto'`, the `detectInputLanguage()` function scans input text and sets `targetLang` to avoid same-language translation (zh→en, en→zh, ja→zh).
+- Document translation: drag a `.txt` or `.md` file onto the input area to read its contents and trigger translation automatically. The renderer uses `window.electronAPI.getFilePath()` (via `electron.webUtils.getPathForFile`) to obtain the real file path, then asks the main process to read the file.
+- Customizable global shortcuts: `SettingsModal` exposes inputs for the two global shortcuts. Values are converted to Electron accelerator strings and persisted in `settings.shortcuts`; the main process re-registers shortcuts whenever they change.
+- Multi-model comparison translation: when `settings.comparisonMode` is enabled and at least two providers have API keys, the store calls `translate-multi`. The main process uses `Promise.allSettled()` so a failure in one provider does not affect the others.
 
 ## TypeScript Configuration
 
@@ -95,6 +103,7 @@ Settings are stored with `electron-store` in the main process. On first load, th
 - Theme hook: `src/renderer/hooks/useTheme.ts`
 - Settings UI: `src/renderer/components/SettingsModal.tsx`
 - Translation UI: `src/renderer/components/TranslationPanel.tsx`
+- Shortcut input component: `src/renderer/components/ShortcutInput.tsx`
 - Confirm dialog: `src/renderer/components/ConfirmDialog.tsx`
 - Popup panel (cross-selection): `src/renderer/components/PopupPanel.tsx`
 - History panel: `src/renderer/components/HistoryPanel.tsx`
