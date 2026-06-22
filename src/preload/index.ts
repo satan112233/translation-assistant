@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import type { FavoriteRecord, HistoryRecord, MultiTranslateRequest, MultiTranslateResult, ReadTextFileResult, SaveTextFileRequest, SaveTextFileResult, TranslateRequest, TranslationResult } from '../shared/types'
+import type { FavoriteRecord, GlossaryEntry, HistoryRecord, MultiTranslateRequest, MultiTranslateResult, ReadTextFileResult, SaveTextFileRequest, SaveTextFileResult, TranslateRequest, TranslationResult } from '../shared/types'
 
 export interface ElectronAPI {
   getSettings: () => Promise<unknown>
@@ -10,6 +10,8 @@ export interface ElectronAPI {
   getFilePath: (file: File) => string
   readTextFile: (filePath: string) => Promise<ReadTextFileResult>
   saveTextFile: (request: SaveTextFileRequest) => Promise<SaveTextFileResult>
+  getGlossary: () => Promise<GlossaryEntry[]>
+  setGlossary: (glossary: GlossaryEntry[]) => Promise<boolean>
   getHistory: () => Promise<HistoryRecord[]>
   addHistory: (record: HistoryRecord) => Promise<boolean>
   deleteHistoryItem: (id: string) => Promise<boolean>
@@ -33,6 +35,8 @@ const api: ElectronAPI = {
   getFilePath: (file) => webUtils.getPathForFile(file),
   readTextFile: (filePath) => ipcRenderer.invoke('read-text-file', filePath),
   saveTextFile: (request) => ipcRenderer.invoke('save-text-file', request),
+  getGlossary: () => ipcRenderer.invoke('get-glossary'),
+  setGlossary: (glossary) => ipcRenderer.invoke('set-glossary', glossary),
   getHistory: () => ipcRenderer.invoke('get-history'),
   addHistory: (record) => ipcRenderer.invoke('add-history', record),
   deleteHistoryItem: (id) => ipcRenderer.invoke('delete-history-item', id),

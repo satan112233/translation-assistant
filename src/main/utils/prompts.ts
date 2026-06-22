@@ -1,4 +1,4 @@
-import type { LanguageCode, TranslateParams } from '../../shared/types'
+import type { GlossaryEntry, LanguageCode, TranslateParams } from '../../shared/types'
 
 const LANGUAGE_NAMES: Record<LanguageCode | 'auto', string> = {
   auto: '自动检测的语言',
@@ -16,9 +16,25 @@ const LANGUAGE_PAIR_INSTRUCTIONS: Record<string, string> = {
   'ja-en': '将日语自然转换为英文，保持原意和语气。',
 }
 
-export function buildSystemPrompt(sourceLang: 'auto' | LanguageCode, targetLang: LanguageCode): string {
+function buildGlossaryInstruction(glossary: GlossaryEntry[]): string {
+  if (!glossary.length) return ''
+
+  const lines = glossary.map((entry) => {
+    const note = entry.note ? `（${entry.note}）` : ''
+    return `- "${entry.term}" 必须翻译为 "${entry.translation}"${note}`
+  })
+
+  return `
+【术语表】
+翻译过程中请严格遵守以下术语约定：
+${lines.join('\n')}
+如果原文中包含上述术语，请优先使用指定译法，不要自行翻译。`
+}
+
+export function buildSystemPrompt(sourceLang: 'auto' | LanguageCode, targetLang: LanguageCode, glossary?: GlossaryEntry[]): string {
   const pairKey = `${sourceLang === 'auto' ? 'auto' : sourceLang}-${targetLang}`
   const pairInstruction = LANGUAGE_PAIR_INSTRUCTIONS[pairKey] || ''
+  const glossaryInstruction = buildGlossaryInstruction(glossary || [])
 
   return `你是一个专业的中英日三语翻译助手，擅长准确、自然地进行语言转换。
 
@@ -30,6 +46,7 @@ export function buildSystemPrompt(sourceLang: 'auto' | LanguageCode, targetLang:
 5. 如果是日语翻译，默认使用礼貌体（です/ます），除非原文明显是口语或简体。
 6. 日文结果请提供罗马音读音；英文结果如涉及难词，可提供音标。
 ${pairInstruction ? `7. ${pairInstruction}` : ''}
+${glossaryInstruction}
 
 输出必须是以下 JSON 格式，不要包含 markdown 代码块标记，确保是合法 JSON：
 {

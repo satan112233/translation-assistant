@@ -150,6 +150,30 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </button>
           </div>
 
+          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+          >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">翻译结果自动复制</label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">翻译完成后自动将译文复制到剪贴板</p>
+            </div>
+            <button
+              onClick={() => setDraft({ ...draft, autoCopyResult: !draft.autoCopyResult })}
+              className={`
+                relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                ${draft.autoCopyResult
+                  ? 'bg-blue-600'
+                  : 'bg-gray-300 dark:bg-gray-600'}
+              `}
+            >
+              <span
+                className={`
+                  inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                  ${draft.autoCopyResult ? 'translate-x-6' : 'translate-x-1'}
+                `}
+              />
+            </button>
+          </div>
+
           <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-4">
             <div className="flex items-center gap-2">
               <Keyboard size={16} className="text-gray-600 dark:text-gray-300" />

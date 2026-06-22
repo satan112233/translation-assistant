@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { X, Copy, Check, ArrowRightLeft } from 'lucide-react'
+import { X, Copy, Check, ArrowRightLeft, Pin, PinOff } from 'lucide-react'
 import { useSettingsStore } from '../stores'
 import { PROVIDER_LABELS } from '../../main/providers'
 import { useTheme } from '../hooks/useTheme'
@@ -66,6 +66,9 @@ export function PopupPanel() {
         detectedSourceLang: data.detectedSourceLang,
         pronunciation: data.pronunciation,
       })
+      if (settings.autoCopyResult) {
+        void navigator.clipboard.writeText(data.translatedText)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '翻译失败')
     } finally {
@@ -107,6 +110,18 @@ export function PopupPanel() {
             <option value="ja">日语</option>
           </select>
         </div>
+        <button
+          onClick={() => void saveSettings({ ...settings, popupPinned: !settings.popupPinned })}
+          className={`
+            p-1 rounded transition-colors
+            ${settings.popupPinned
+              ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+              : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}
+          `}
+          title={settings.popupPinned ? '取消固定' : '固定弹窗'}
+        >
+          {settings.popupPinned ? <Pin size={14} /> : <PinOff size={14} />}
+        </button>
         <button
           onClick={handleClose}
           className="p-1 text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"

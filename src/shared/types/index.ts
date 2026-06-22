@@ -24,6 +24,13 @@ export interface ShortcutSettings {
   crossSelection: string
 }
 
+export interface GlossaryEntry {
+  id: string
+  term: string
+  translation: string
+  note?: string
+}
+
 export interface AppSettings {
   defaultProvider: string
   providers: Record<string, ProviderConfig>
@@ -34,6 +41,9 @@ export interface AppSettings {
   clipboardMonitor: boolean
   shortcuts: ShortcutSettings
   comparisonMode: boolean
+  glossary: GlossaryEntry[]
+  popupPinned: boolean
+  autoCopyResult: boolean
 }
 
 export interface MultiTranslateRequest {
@@ -71,7 +81,7 @@ export interface SaveTextFileResult {
 
 export interface TranslationProvider {
   name: string
-  translate(params: TranslateParams): Promise<TranslationResult>
+  translate(params: TranslateParams, glossary?: GlossaryEntry[]): Promise<TranslationResult>
 }
 
 export interface TranslateRequest {

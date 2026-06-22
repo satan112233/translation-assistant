@@ -6,7 +6,7 @@ import koffi from 'koffi'
 import Store from 'electron-store'
 import { createProvider } from './providers'
 import { MAX_HISTORY_COUNT } from '../shared/types'
-import type { MultiTranslateRequest, MultiTranslateResult, TranslateRequest } from '../shared/types'
+import type { GlossaryEntry, MultiTranslateRequest, MultiTranslateResult, TranslateRequest } from '../shared/types'
 import { createWorker, type Worker } from 'tesseract.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -68,6 +68,10 @@ const store = new Store<{
     popupTargetLang: 'zh' | 'en' | 'ja'
     clipboardMonitor: boolean
     shortcuts: { toggleWindow: string; crossSelection: string }
+    comparisonMode: boolean
+    glossary: GlossaryEntry[]
+    popupPinned: boolean
+    autoCopyResult: boolean
   }
   history: Array<{
     id: string
@@ -122,6 +126,10 @@ const store = new Store<{
       popupTargetLang: 'zh',
       clipboardMonitor: false,
       shortcuts: DEFAULT_SHORTCUTS,
+      comparisonMode: false,
+      glossary: [],
+      popupPinned: false,
+      autoCopyResult: false,
     },
     history: [],
     favorites: [],
@@ -292,8 +300,11 @@ function createPopupWindow(selectedText: string): void {
   })
 
   popupWin.on('blur', () => {
-    popupWin?.close()
-    popupWin = null
+    const settings = store.get('settings')
+    if (!settings.popupPinned) {
+      popupWin?.close()
+      popupWin = null
+    }
   })
 
   popupWin.on('closed', () => {
@@ -457,12 +468,13 @@ ipcMain.handle('set-settings', (_event, settings) => {
 ipcMain.handle('translate', async (_event, request: TranslateRequest) => {
   try {
     console.log('[main] translate request:', request.provider, request.sourceLang, '->', request.targetLang)
+    const glossary = store.get('settings').glossary || []
     const provider = createProvider(request.provider, request.config)
     const result = await provider.translate({
       text: request.text,
       sourceLang: request.sourceLang,
       targetLang: request.targetLang,
-    })
+    }, glossary)
     console.log('[main] translate result:', result.translatedText.slice(0, 50))
     return result
   } catch (error) {
@@ -481,6 +493,8 @@ ipcMain.handle('translate-multi', async (_event, request: MultiTranslateRequest)
       request.targetLang
     )
 
+    const glossary = store.get('settings').glossary || []
+
     const settled = await Promise.allSettled(
       request.providers.map(async ({ provider, config }) => {
         const p = createProvider(provider, config)
@@ -488,7 +502,7 @@ ipcMain.handle('translate-multi', async (_event, request: MultiTranslateRequest)
           text: request.text,
           sourceLang: request.sourceLang,
           targetLang: request.targetLang,
-        })
+        }, glossary)
         return { provider, result }
       })
     )
@@ -519,6 +533,20 @@ ipcMain.handle('translate-multi', async (_event, request: MultiTranslateRequest)
     return { results }
   } catch (error) {
     console.error('[main] translate-multi error:', error)
+    throw error
+  }
+})
+
+ipcMain.handle('get-glossary', () => {
+  return store.get('settings').glossary || []
+})
+
+ipcMain.handle('set-glossary', (_event, glossary: GlossaryEntry[]) => {
+  try {
+    store.set('settings.glossary', glossary)
+    return true
+  } catch (error) {
+    console.error('[main] failed to set glossary:', error)
     throw error
   }
 })

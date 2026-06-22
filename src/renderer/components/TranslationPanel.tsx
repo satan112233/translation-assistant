@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRightLeft, Copy, Check, Settings, Languages, History, Volume2, Square, Star, FileDown } from 'lucide-react'
-import { useTranslationStore, useSettingsStore, useHistoryStore, useFavoritesStore } from '../stores'
+import { ArrowRightLeft, Copy, Check, Settings, Languages, History, Volume2, Square, Star, FileDown, BookOpen } from 'lucide-react'
+import { useTranslationStore, useSettingsStore, useHistoryStore, useFavoritesStore, useGlossaryStore } from '../stores'
 import { LanguageSelector } from './LanguageSelector'
 import { SettingsModal } from './SettingsModal'
 import { HistoryPanel } from './HistoryPanel'
 import { FavoritesPanel } from './FavoritesPanel'
+import { GlossaryPanel } from './GlossaryPanel'
 import { PROVIDER_LABELS } from '../../main/providers'
 import type { LanguageCode, ProviderTranslationResult, TranslationResult } from '../../shared/types'
 import { clsx, type ClassValue } from 'clsx'
@@ -34,9 +35,11 @@ export function TranslationPanel() {
   const { settings, isLoaded } = useSettingsStore()
   const { loadHistory } = useHistoryStore()
   const { loadFavorites } = useFavoritesStore()
+  const { loadGlossary } = useGlossaryStore()
   const [showSettings, setShowSettings] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [showFavorites, setShowFavorites] = useState(false)
+  const [showGlossary, setShowGlossary] = useState(false)
   const [isOcrProcessing, setIsOcrProcessing] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const translateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -45,10 +48,11 @@ export function TranslationPanel() {
   useEffect(() => {
     void loadHistory()
     void loadFavorites()
+    void loadGlossary()
     return () => {
       if (translateTimeoutRef.current) clearTimeout(translateTimeoutRef.current)
     }
-  }, [loadHistory, loadFavorites])
+  }, [loadHistory, loadFavorites, loadGlossary])
 
   // Auto-switch target language based on detected input text (only when sourceLang is 'auto')
   useEffect(() => {
@@ -207,6 +211,13 @@ export function TranslationPanel() {
             <Star size={18} />
           </button>
           <button
+            onClick={() => setShowGlossary(true)}
+            className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-colors"
+            title="术语库"
+          >
+            <BookOpen size={18} />
+          </button>
+          <button
             onClick={() => setShowHistory(true)}
             className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
             title="翻译历史"
@@ -330,6 +341,7 @@ export function TranslationPanel() {
       <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
       <HistoryPanel isOpen={showHistory} onClose={() => setShowHistory(false)} />
       <FavoritesPanel isOpen={showFavorites} onClose={() => setShowFavorites(false)} />
+      <GlossaryPanel isOpen={showGlossary} onClose={() => setShowGlossary(false)} />
     </div>
   )
 }

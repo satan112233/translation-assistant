@@ -1,4 +1,4 @@
-import type { LanguageCode, ProviderConfig, TranslateParams, TranslationProvider, TranslationResult } from '../../shared/types'
+import type { GlossaryEntry, LanguageCode, ProviderConfig, TranslateParams, TranslationProvider, TranslationResult } from '../../shared/types'
 import { buildSystemPrompt, buildUserPrompt } from '../utils/prompts'
 
 interface OpenAICompatibleResponse {
@@ -21,7 +21,7 @@ export class OpenAICompatibleProvider implements TranslationProvider {
     this.config = config
   }
 
-  async translate(params: TranslateParams): Promise<TranslationResult> {
+  async translate(params: TranslateParams, glossary?: GlossaryEntry[]): Promise<TranslationResult> {
     if (!this.config.apiKey) {
       throw new Error(`${this.name} 的 API Key 未配置，请先在设置中填写。`)
     }
@@ -42,7 +42,7 @@ export class OpenAICompatibleProvider implements TranslationProvider {
         model: this.config.model,
         temperature: 0.3,
         messages: [
-          { role: 'system', content: buildSystemPrompt(sourceLang, targetLang) },
+          { role: 'system', content: buildSystemPrompt(sourceLang, targetLang, glossary) },
           { role: 'user', content: buildUserPrompt(params) },
         ],
         response_format: { type: 'json_object' },

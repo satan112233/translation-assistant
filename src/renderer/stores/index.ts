@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AppSettings, FavoriteRecord, HistoryRecord, LanguageCode, ProviderTranslationResult, TranslationResult } from '../../shared/types'
+import type { AppSettings, FavoriteRecord, GlossaryEntry, HistoryRecord, LanguageCode, ProviderTranslationResult, TranslationResult } from '../../shared/types'
 import { MAX_HISTORY_COUNT } from '../../shared/types'
 import { DEFAULT_PROVIDER_CONFIGS, PROVIDER_LABELS } from '../../main/providers'
 
@@ -47,6 +47,16 @@ interface FavoritesState {
   updateFavoriteNote: (id: string, note: string) => Promise<void>
 }
 
+interface GlossaryState {
+  glossary: GlossaryEntry[]
+  isLoaded: boolean
+  loadGlossary: () => Promise<void>
+  saveGlossary: (glossary: GlossaryEntry[]) => Promise<void>
+  addGlossaryEntry: (entry: GlossaryEntry) => Promise<void>
+  deleteGlossaryEntry: (id: string) => Promise<void>
+  updateGlossaryEntry: (id: string, entry: Partial<GlossaryEntry>) => Promise<void>
+}
+
 const DEFAULT_SHORTCUTS = {
   toggleWindow: 'CommandOrControl+Shift+T',
   crossSelection: 'CommandOrControl+Shift+C',
@@ -62,6 +72,9 @@ const defaultSettings: AppSettings = {
   clipboardMonitor: false,
   shortcuts: { ...DEFAULT_SHORTCUTS },
   comparisonMode: false,
+  glossary: [],
+  popupPinned: false,
+  autoCopyResult: false,
 }
 
 function getConfiguredProviders(settings: AppSettings): string[] {
@@ -91,6 +104,9 @@ function mergeWithDefaults(settings: Partial<AppSettings>): AppSettings {
       ...(settings.shortcuts || {}),
     },
     comparisonMode: settings.comparisonMode ?? defaultSettings.comparisonMode,
+    glossary: settings.glossary ?? defaultSettings.glossary,
+    popupPinned: settings.popupPinned ?? defaultSettings.popupPinned,
+    autoCopyResult: settings.autoCopyResult ?? defaultSettings.autoCopyResult,
   }
 }
 
@@ -215,6 +231,57 @@ export const useFavoritesStore = create<FavoritesState>((set) => ({
   },
 }))
 
+export const useGlossaryStore = create<GlossaryState>((set) => ({
+  glossary: [],
+  isLoaded: false,
+  loadGlossary: async () => {
+    try {
+      const raw = await window.electronAPI.getGlossary()
+      set({ glossary: raw as GlossaryEntry[], isLoaded: true })
+    } catch (error) {
+      console.error('Failed to load glossary:', error)
+      set({ glossary: [], isLoaded: true })
+    }
+  },
+  saveGlossary: async (glossary) => {
+    try {
+      await window.electronAPI.setGlossary(glossary)
+      set({ glossary })
+    } catch (error) {
+      console.error('Failed to save glossary:', error)
+    }
+  },
+  addGlossaryEntry: async (entry) => {
+    try {
+      const { glossary, saveGlossary } = useGlossaryStore.getState()
+      const newGlossary = [entry, ...glossary.filter((item) => item.id !== entry.id)]
+      await saveGlossary(newGlossary)
+    } catch (error) {
+      console.error('Failed to add glossary entry:', error)
+    }
+  },
+  deleteGlossaryEntry: async (id) => {
+    try {
+      const { glossary, saveGlossary } = useGlossaryStore.getState()
+      const newGlossary = glossary.filter((item) => item.id !== id)
+      await saveGlossary(newGlossary)
+    } catch (error) {
+      console.error('Failed to delete glossary entry:', error)
+    }
+  },
+  updateGlossaryEntry: async (id, entry) => {
+    try {
+      const { glossary, saveGlossary } = useGlossaryStore.getState()
+      const newGlossary = glossary.map((item) =>
+        item.id === id ? { ...item, ...entry } : item
+      )
+      await saveGlossary(newGlossary)
+    } catch (error) {
+      console.error('Failed to update glossary entry:', error)
+    }
+  },
+}))
+
 export const useTranslationStore = create<TranslationState>((set, get) => ({
   inputText: '',
   sourceLang: 'auto',
@@ -303,6 +370,10 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
           isLoading: false,
           error: successCount === 0 ? '所有模型翻译均失败，请检查 API Key 和网络' : null,
         })
+
+        if (settings.autoCopyResult && primaryResult) {
+          void navigator.clipboard.writeText(primaryResult.translatedText)
+        }
       } else {
         const providerConfig = settings.providers[settings.defaultProvider]
         if (!providerConfig) {
@@ -328,6 +399,10 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
           timestamp: Date.now(),
         }
         void useHistoryStore.getState().addHistory(historyRecord)
+
+        if (settings.autoCopyResult) {
+          void navigator.clipboard.writeText(result.translatedText)
+        }
 
         set({ result, isLoading: false })
       }
