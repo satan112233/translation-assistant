@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Skill(run)",
+      "Bash(npx playwright *)",
+      "Bash(start \"Translation Assistant Dev\" \"npm\" \"run\" \"dev\")",
+      "Bash(powershell.exe -Command 'Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $bitmap = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height; $graphics = [System.Drawing.Graphics]::FromImage\\($bitmap\\); $graphics.CopyFromScreen\\($screen.Location, [System.Drawing.Point]::Empty, $screen.Size\\); $bitmap.Save\\('\\\\''D:\\\\\\\\workspace\\\\\\\\my-work\\\\\\\\translation-assistant\\\\\\\\screenshot.png'\\\\''\\); Write-Host '\\\\''Screenshot saved to screenshot.png'\\\\''')",
+      "Bash(taskkill //F //IM electron.exe)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(tasklist //FI \"IMAGENAME eq electron.exe\" //FO TABLE)",
+      "Bash(npm install *)",
+      "Bash(mkdir -p public/tessdata)",
+      "Bash(curl -L -o chi_sim.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/chi_sim.traineddata)",
+      "Bash(curl -L -o eng.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata)",
+      "Bash(curl -L -o jpn.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/jpn.traineddata)",
+      "Bash(npm uninstall *)",
+      "Bash(tasklist)",
+      "Bash(git init *)",
+      "Bash(git config *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
