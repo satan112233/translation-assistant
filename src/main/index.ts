@@ -18,10 +18,24 @@ const user32 = koffi.load('user32.dll')
 const GetForegroundWindow = user32.func('void *GetForegroundWindow()')
 const SetForegroundWindow = user32.func('int SetForegroundWindow(void *)')
 const keybd_event = user32.func('void keybd_event(uint8 bVk, uint8 bScan, uint32 dwFlags, uint64 dwExtraInfo)')
+const GetAsyncKeyState = user32.func('short GetAsyncKeyState(int vKey)')
 
+const VK_SHIFT = 0x10
 const VK_CONTROL = 0x11
+const VK_MENU = 0x12
 const VK_C = 0x43
 const KEYEVENTF_KEYUP = 0x0002
+
+const HOTKEY_VKEYS = [VK_SHIFT, VK_CONTROL, VK_MENU, VK_C]
+
+async function waitForHotkeyRelease(): Promise<void> {
+  // Wait until all keys involved in the global shortcut are released.
+  // This prevents the simulated Ctrl+C from becoming Ctrl+Shift+C
+  // when the user is still holding the cross-selection shortcut.
+  while (HOTKEY_VKEYS.some((vk) => (GetAsyncKeyState(vk) & 0x8000) !== 0)) {
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  }
+}
 
 const packageJson = JSON.parse(readFileSync(path.join(process.env.APP_ROOT, 'package.json'), 'utf-8'))
 const appVersion = packageJson.version || '0.0.0'
@@ -317,6 +331,11 @@ async function simulateCopy(): Promise<void> {
 }
 
 async function handleCrossSelection(): Promise<void> {
+  // Wait for the global shortcut keys to be released before simulating Ctrl+C.
+  // Otherwise Shift may still be held down and the simulated copy becomes
+  // Ctrl+Shift+C, which many apps treat differently from Ctrl+C.
+  await waitForHotkeyRelease()
+
   const originalText = clipboard.readText()
 
   // Clear clipboard so we can detect whether copy succeeded
