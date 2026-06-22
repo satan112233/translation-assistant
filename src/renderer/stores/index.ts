@@ -49,7 +49,7 @@ interface FavoritesState {
 
 const DEFAULT_SHORTCUTS = {
   toggleWindow: 'CommandOrControl+Shift+T',
-  crossSelection: 'CommandOrControl+Alt+X',
+  crossSelection: 'CommandOrControl+Shift+C',
 }
 
 const defaultSettings: AppSettings = {

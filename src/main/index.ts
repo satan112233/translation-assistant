@@ -41,7 +41,7 @@ process.env.VITE_PUBLIC = devServerUrl
 // Initialize secure store for API keys, settings, and history
 const DEFAULT_SHORTCUTS = {
   toggleWindow: 'CommandOrControl+Shift+T',
-  crossSelection: 'CommandOrControl+Alt+X',
+  crossSelection: 'CommandOrControl+Shift+C',
 }
 
 const store = new Store<{

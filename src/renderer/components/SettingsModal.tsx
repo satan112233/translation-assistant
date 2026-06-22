@@ -19,7 +19,7 @@ const THEME_OPTIONS = [
 
 const DEFAULT_SHORTCUTS = {
   toggleWindow: 'CommandOrControl+Shift+T',
-  crossSelection: 'CommandOrControl+Alt+X',
+  crossSelection: 'CommandOrControl+Shift+C',
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
@@ -123,7 +123,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               value={draft.popupTargetLang}
               onChange={(lang) => setDraft({ ...draft, popupTargetLang: lang })}
             />
-            <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">设置 Ctrl + Alt + X 划词翻译时默认使用的目标语言。</p>
+            <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">设置划词翻译时默认使用的目标语言。</p>
           </div>
 
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"

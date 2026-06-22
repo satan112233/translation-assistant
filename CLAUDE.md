@@ -20,7 +20,7 @@ There are currently no test scripts configured.
 
 The project is structured around three Electron processes:
 
-- **`src/main/`** — Electron main process. Creates the window, manages the system tray, registers global shortcuts (`Ctrl+Shift+T`), persists settings via `electron-store`, makes all LLM API requests, runs OCR via `tesseract.js`, and polls clipboard when clipboard monitoring is enabled.
+- **`src/main/`** — Electron main process. Creates the window, manages the system tray, registers global shortcuts (`Ctrl+Shift+T` and `Ctrl+Shift+C` for cross-selection), persists settings via `electron-store`, makes all LLM API requests, runs OCR via `tesseract.js`, and polls clipboard when clipboard monitoring is enabled.
 - **`src/preload/`** — Preload script, built as CommonJS. Exposes a typed `window.electronAPI` bridge so the renderer can invoke main-process IPC handlers safely.
 - **`src/renderer/`** — React application. Manages UI state with Zustand and renders the translation interface.
 - **`src/shared/`** — Shared TypeScript types used by both main and renderer.
