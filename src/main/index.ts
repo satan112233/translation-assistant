@@ -357,9 +357,30 @@ function isMainWindowFocused(): boolean {
   return mainValue === fgValue
 }
 
+function normalizeAccelerator(shortcut: string): string {
+  // Backwards compatibility: old settings may use DOM KeyboardEvent.code
+  // instead of Electron accelerator syntax.
+  const map: Record<string, string> = {
+    AltLeft: 'Alt',
+    AltRight: 'RightAlt',
+    ControlLeft: 'Control',
+    ControlRight: 'RightControl',
+    ShiftLeft: 'Shift',
+    ShiftRight: 'RightShift',
+    MetaLeft: 'Super',
+    MetaRight: 'Super',
+  }
+  if (map[shortcut]) return map[shortcut]
+  if (shortcut.startsWith('Key')) return shortcut.slice(3)
+  if (shortcut.startsWith('Digit')) return shortcut.slice(5)
+  if (shortcut.startsWith('Numpad')) return shortcut.slice(6)
+  return shortcut
+}
+
 function registerVoiceShortcut(): void {
   if (voiceShortcutRegistered) return
-  const shortcut = store.get('settings').voiceInputShortcut
+  const rawShortcut = store.get('settings').voiceInputShortcut
+  const shortcut = normalizeAccelerator(rawShortcut)
   if (!shortcut) return
   const success = globalShortcut.register(shortcut, () => {
     void handleGlobalVoiceToggle()
@@ -374,7 +395,8 @@ function registerVoiceShortcut(): void {
 
 function unregisterVoiceShortcut(): void {
   if (!voiceShortcutRegistered) return
-  const shortcut = store.get('settings').voiceInputShortcut
+  const rawShortcut = store.get('settings').voiceInputShortcut
+  const shortcut = normalizeAccelerator(rawShortcut)
   if (shortcut) {
     globalShortcut.unregister(shortcut)
   }
