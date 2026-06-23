@@ -358,8 +358,11 @@ function isMainWindowFocused(): boolean {
 }
 
 function normalizeAccelerator(shortcut: string): string {
-  // Backwards compatibility: old settings may use DOM KeyboardEvent.code
-  // instead of Electron accelerator syntax.
+  // Migrate legacy right-alt shortcuts to the new default; Electron globalShortcut
+  // cannot register a lone right Alt key on Windows.
+  const legacyAlts = ['AltRight', 'RightAlt', 'AltGr']
+  if (legacyAlts.includes(shortcut)) return 'Ctrl+Alt+V'
+
   const map: Record<string, string> = {
     AltLeft: 'Alt',
     ControlLeft: 'Control',
