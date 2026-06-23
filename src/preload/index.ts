@@ -32,6 +32,7 @@ export interface ElectronAPI {
   onStartGlobalRecording: (callback: () => void) => () => void
   onStopGlobalRecording: (callback: () => void) => () => void
   sendGlobalVoiceResult: (text: string) => void
+  stopGlobalRecording: () => void
   onToggleVoiceRecording: (callback: () => void) => () => void
 }
 
@@ -74,6 +75,7 @@ const api: ElectronAPI = {
     return () => ipcRenderer.removeListener('stop-global-recording', wrapped)
   },
   sendGlobalVoiceResult: (text) => ipcRenderer.send('global-voice-result', text),
+  stopGlobalRecording: () => ipcRenderer.send('stop-global-recording-manual'),
   onToggleVoiceRecording: (callback) => {
     const wrapped = (_event: IpcRendererEvent) => callback()
     ipcRenderer.on('toggle-voice-recording', wrapped)

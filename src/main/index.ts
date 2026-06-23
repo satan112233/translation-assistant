@@ -926,6 +926,13 @@ ipcMain.on('global-voice-result', async (_event, text: string) => {
   await simulatePasteToForeground(text)
 })
 
+ipcMain.on('stop-global-recording-manual', () => {
+  console.log('[main] manual stop global recording requested from popup')
+  if (globalVoiceRecording) {
+    voiceWin?.webContents.send('stop-global-recording')
+  }
+})
+
 const MAX_TEXT_FILE_SIZE = 2 * 1024 * 1024 // 2MB
 const ALLOWED_TEXT_EXTENSIONS = new Set(['.txt', '.md'])
 
