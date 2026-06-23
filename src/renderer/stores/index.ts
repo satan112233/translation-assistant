@@ -82,6 +82,7 @@ interface RecordingState {
   transcribedText: string | null
   startRecording: (language: 'auto' | LanguageCode) => Promise<void>
   stopRecording: () => void
+  cancelRecording: () => void
   toggleRecording: () => void
   setTranscribedText: (text: string | null) => void
 }
@@ -442,6 +443,7 @@ let audioChunksRef: Blob[] = []
 let streamRef: MediaStream | null = null
 let timerRef: ReturnType<typeof setInterval> | null = null
 let maxDurationTimerRef: ReturnType<typeof setTimeout> | null = null
+let cancelPendingRef = false
 
 export const useRecordingStore = create<RecordingState>((set) => ({
   isRecording: false,
@@ -453,6 +455,26 @@ export const useRecordingStore = create<RecordingState>((set) => ({
 
   stopRecording: () => {
     if (mediaRecorderRef?.state === 'recording') {
+      mediaRecorderRef.stop()
+    }
+    if (streamRef) {
+      streamRef.getTracks().forEach((track) => track.stop())
+      streamRef = null
+    }
+    if (timerRef) {
+      clearInterval(timerRef)
+      timerRef = null
+    }
+    if (maxDurationTimerRef) {
+      clearTimeout(maxDurationTimerRef)
+      maxDurationTimerRef = null
+    }
+    set({ isRecording: false, recordingDuration: 0 })
+  },
+
+  cancelRecording: () => {
+    if (mediaRecorderRef?.state === 'recording') {
+      cancelPendingRef = true
       mediaRecorderRef.stop()
     }
     if (streamRef) {
@@ -496,6 +518,11 @@ export const useRecordingStore = create<RecordingState>((set) => ({
 
       mediaRecorder.onstop = async () => {
         useRecordingStore.getState().stopRecording()
+        if (cancelPendingRef) {
+          cancelPendingRef = false
+          audioChunksRef = []
+          return
+        }
         if (audioChunksRef.length === 0) {
           alert('未录制到音频')
           return

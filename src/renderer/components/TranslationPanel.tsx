@@ -32,7 +32,7 @@ export function TranslationPanel() {
   const { settings, isLoaded } = useSettingsStore()
   const { loadHistory } = useHistoryStore()
   const { loadFavorites } = useFavoritesStore()
-  const { isTranscribing, transcribedText, setTranscribedText } = useRecordingStore()
+  const { transcribedText, setTranscribedText } = useRecordingStore()
   const [isOcrProcessing, setIsOcrProcessing] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -248,14 +248,6 @@ export function TranslationPanel() {
                 <div className="flex flex-col items-center gap-2">
                   <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                   <span className="text-sm text-gray-600 dark:text-gray-300">正在识别图片文字...</span>
-                </div>
-              </div>
-            )}
-            {isTranscribing && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-800/80">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">正在识别语音...</span>
                 </div>
               </div>
             )}

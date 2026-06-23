@@ -172,6 +172,7 @@ let lastClipboardText = ''
 let voiceShortcutRegistered = false
 let globalVoiceRecording = false
 let lastForegroundHwnd: unknown = null
+let pendingRecordingState: { isRecording: boolean; isTranscribing: boolean; recordingDuration: number } | null = null
 
 async function initOcrWorker(): Promise<void> {
   try {
@@ -417,10 +418,10 @@ function createRecordingPopupWindow(): void {
   const workArea = display.workArea
 
   const width = 280
-  const height = 64
+  const height = 210
 
   let x = cursorPoint.x - Math.floor(width / 2)
-  let y = cursorPoint.y - 90
+  let y = cursorPoint.y - 130
 
   x = Math.max(workArea.x, Math.min(x, workArea.x + workArea.width - width))
   y = Math.max(workArea.y, Math.min(y, workArea.y + workArea.height - height))
@@ -461,6 +462,12 @@ function createRecordingPopupWindow(): void {
     recordingPopupWin = null
   })
 
+  recordingPopupWin.webContents.on('did-finish-load', () => {
+    if (pendingRecordingState) {
+      recordingPopupWin?.webContents.send('recording-popup-state', pendingRecordingState)
+    }
+  })
+
   const popupUrl = devServerUrl
     ? `${devServerUrl}?mode=recording-popup`
     : `file://${path.join(RENDERER_DIST, 'index.html')}?mode=recording-popup`
@@ -496,12 +503,15 @@ async function handleGlobalVoiceToggle(): Promise<void> {
   globalVoiceRecording = true
   if (!voiceWin) {
     createVoiceWindow()
+    voiceWin!.webContents.once('did-finish-load', () => {
+      console.log('[main] voiceWin finished loading, sending start-global-recording')
+      voiceWin?.webContents.send('start-global-recording')
+    })
+  } else {
+    console.log('[main] voiceWin already exists, sending start-global-recording')
+    voiceWin.webContents.send('start-global-recording')
   }
   createRecordingPopupWindow()
-  // Give the hidden voice window a moment to be ready, then start recording.
-  setTimeout(() => {
-    voiceWin?.webContents.send('start-global-recording')
-  }, 150)
 }
 
 async function simulatePasteToForeground(text: string): Promise<void> {
@@ -931,6 +941,28 @@ ipcMain.on('stop-global-recording-manual', () => {
   if (globalVoiceRecording) {
     voiceWin?.webContents.send('stop-global-recording')
   }
+})
+
+ipcMain.on('cancel-global-voice', () => {
+  console.log('[main] cancel global voice requested from popup')
+  closeRecordingPopupWindow()
+  if (globalVoiceRecording) {
+    globalVoiceRecording = false
+    voiceWin?.webContents.send('cancel-global-recording')
+  }
+})
+
+ipcMain.on('recording-popup-ready', () => {
+  console.log('[main] recording popup ready, sending pending state:', pendingRecordingState)
+  if (pendingRecordingState) {
+    recordingPopupWin?.webContents.send('recording-popup-state', pendingRecordingState)
+  }
+})
+
+ipcMain.on('recording-state', (_event, state: { isRecording: boolean; isTranscribing: boolean; recordingDuration: number }) => {
+  console.log('[main] received recording-state:', state)
+  pendingRecordingState = state
+  recordingPopupWin?.webContents.send('recording-popup-state', state)
 })
 
 const MAX_TEXT_FILE_SIZE = 2 * 1024 * 1024 // 2MB

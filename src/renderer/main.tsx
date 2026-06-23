@@ -12,6 +12,10 @@ const isPopup = mode === 'popup'
 const isVoice = mode === 'voice'
 const isRecordingPopup = mode === 'recording-popup'
 
+if (isRecordingPopup) {
+  document.documentElement.classList.add('recording-popup')
+}
+
 console.log('[renderer] main.tsx loaded, version:', typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown', 'mode:', mode || 'main')
 
 createRoot(document.getElementById('root')!).render(

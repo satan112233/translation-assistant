@@ -19,7 +19,7 @@ function SoundWave() {
 }
 
 export function RecordingPanel() {
-  const { isRecording, isTranscribing, recordingDuration, stopRecording } = useRecordingStore()
+  const { isRecording, isTranscribing, recordingDuration, stopRecording, cancelRecording } = useRecordingStore()
 
   if (!isRecording && !isTranscribing) return null
 
@@ -29,7 +29,7 @@ export function RecordingPanel() {
         {isRecording ? (
           <>
             <button
-              onClick={() => stopRecording()}
+              onClick={() => cancelRecording()}
               className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
               title="取消录音"
             >

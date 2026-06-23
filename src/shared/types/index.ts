@@ -101,6 +101,12 @@ export interface SpeechOptimizationRecord {
   timestamp: number
 }
 
+export interface RecordingPopupState {
+  isRecording: boolean
+  isTranscribing: boolean
+  recordingDuration: number
+}
+
 export const MAX_SPEECH_OPTIMIZATION_COUNT = 20
 
 export interface TranslationProvider {

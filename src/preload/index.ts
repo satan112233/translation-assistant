@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
-import type { FavoriteRecord, GlossaryEntry, HistoryRecord, MultiTranslateRequest, MultiTranslateResult, ReadTextFileResult, SaveTextFileRequest, SaveTextFileResult, SpeechOptimizationRecord, TranscribeAudioRequest, TranscribeAudioResult, TranslateRequest, TranslationResult } from '../shared/types'
+import type { FavoriteRecord, GlossaryEntry, HistoryRecord, MultiTranslateRequest, MultiTranslateResult, ReadTextFileResult, SaveTextFileRequest, SaveTextFileResult, SpeechOptimizationRecord, TranscribeAudioRequest, TranscribeAudioResult, TranslateRequest, TranslationResult, RecordingPopupState } from '../shared/types'
 
 export interface ElectronAPI {
   getSettings: () => Promise<unknown>
@@ -33,6 +33,11 @@ export interface ElectronAPI {
   onStopGlobalRecording: (callback: () => void) => () => void
   sendGlobalVoiceResult: (text: string) => void
   stopGlobalRecording: () => void
+  cancelGlobalVoice: () => void
+  sendRecordingState: (state: RecordingPopupState) => void
+  onRecordingPopupState: (callback: (state: RecordingPopupState) => void) => () => void
+  recordingPopupReady: () => void
+  onCancelGlobalRecording: (callback: () => void) => () => void
   onToggleVoiceRecording: (callback: () => void) => () => void
 }
 
@@ -76,6 +81,19 @@ const api: ElectronAPI = {
   },
   sendGlobalVoiceResult: (text) => ipcRenderer.send('global-voice-result', text),
   stopGlobalRecording: () => ipcRenderer.send('stop-global-recording-manual'),
+  cancelGlobalVoice: () => ipcRenderer.send('cancel-global-voice'),
+  sendRecordingState: (state) => ipcRenderer.send('recording-state', state),
+  onRecordingPopupState: (callback) => {
+    const wrapped = (_event: IpcRendererEvent, state: RecordingPopupState) => callback(state)
+    ipcRenderer.on('recording-popup-state', wrapped)
+    return () => ipcRenderer.removeListener('recording-popup-state', wrapped)
+  },
+  recordingPopupReady: () => ipcRenderer.send('recording-popup-ready'),
+  onCancelGlobalRecording: (callback) => {
+    const wrapped = (_event: IpcRendererEvent) => callback()
+    ipcRenderer.on('cancel-global-recording', wrapped)
+    return () => ipcRenderer.removeListener('cancel-global-recording', wrapped)
+  },
   onToggleVoiceRecording: (callback) => {
     const wrapped = (_event: IpcRendererEvent) => callback()
     ipcRenderer.on('toggle-voice-recording', wrapped)

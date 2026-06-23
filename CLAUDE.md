@@ -34,7 +34,10 @@ The renderer communicates with the main process through these channels:
 - `translate` — Send translation parameters to the main process, which calls a single LLM and returns the result.
 - `translate-multi` — Send parameters for multiple configured providers; the main process calls them in parallel and returns per-provider results.
 - `ocr-image` — Send a base64 image to the main process for OCR text recognition.
-- `transcribe-audio` — Send a base64 WAV audio to the main process for offline speech-to-text via whisper.cpp.
+- `transcribe-audio` — Send a base64 WAV audio to the main process for speech-to-text via Zhipu ASR or whisper.cpp.
+- `global-voice-result` — Sent by the hidden `voiceWin` to the main process with the final transcribed (and optionally optimized) text; the main process closes the recording popup and pastes the text into the original foreground window.
+- `stop-global-recording-manual` / `cancel-global-voice` — Sent by `RecordingPopup` when the user clicks confirm/cancel; the main process forwards `start-global-recording` / `stop-global-recording` / `cancel-global-recording` to `voiceWin`.
+- `recording-state` / `recording-popup-state` / `recording-popup-ready` — State synchronization between `voiceWin`, the main process, and `recordingPopupWin`.
 - `read-text-file` / `save-text-file` — Read a dragged `.txt` / `.md` file or save translation result to disk.
 - `get-history` / `add-history` / `clear-history` / `delete-history-item` — Translation history management.
 - `get-speech-optimizations` / `add-speech-optimization` / `clear-speech-optimizations` / `delete-speech-optimization-item` — Speech optimization record management (raw vs optimized ASR text).
@@ -69,14 +72,41 @@ Settings are stored with `electron-store` in the main process. On first load, th
 
 ### Voice Input (whisper.cpp / Zhipu ASR / DeepSeek optimization)
 
-- The renderer's `VoiceRecorder` component records microphone audio via `MediaRecorder`, converts it to a 16kHz mono WAV using the Web Audio API, and sends it to the main process through `transcribe-audio`.
-- Pressing the configured **voice input shortcut** (default `Ctrl+Alt+V`) toggles recording in the translation panel. A floating `RecordingPanel` appears at the bottom-center showing a cancel button, sound-wave animation, and confirm button; pressing the shortcut again or clicking either button stops recording.
-- `settings.voiceInputProvider` selects the recognition backend:
-  - `'zhipu'` (default when Zhipu API key is configured): sends audio to Zhipu AI's `glm-asr-2512` ASR endpoint.
-  - `'local'`: the main process writes the WAV to a temp file, calls `whisper-cli.exe` from `resources/whisper/` (packaged via `extraResources`), and returns the transcribed text.
-- When `settings.voiceInputOptimize` is enabled, the raw ASR text is sent to DeepSeek via `src/main/utils/speech-optimizer.ts` to remove filler words, repetitions, and oral clutter, producing concise written text before it is returned to the renderer. The pair `{ rawText, optimizedText }` is saved to `store.get('speechOptimizations')` (max 20 records) so users can review the before/after in the `SpeechOptimizationPanel` accessible from the left sidebar.
-- The `ggml-base-q8_0.gguf` model (~75MB) is downloaded on first use for local mode to `app.getPath('userData')/whisper/models/`.
-- Voice input can be enabled/disabled, the provider chosen, optimization toggled, and its language hint configured in `SettingsPanel`.
+The voice input system uses two renderer windows when invoked outside the main app:
+
+- **`voiceWin`** (`mode=voice`) — a hidden 1×1 window that owns the actual recording state. It loads `VoiceRecordingPanel`, which starts `MediaRecorder`, converts audio to 16kHz mono WAV, and sends it to the main process through `transcribe-audio`.
+- **`recordingPopupWin`** (`mode=recording-popup`) — a visible mini popup that displays recording progress. It loads `RecordingPopup` and receives state updates from `voiceWin` via the main process.
+
+Pressing the configured **voice input shortcut** (default `Ctrl+Alt+V`) toggles recording:
+
+- Inside the main window, the local `RecordingPanel` appears at the bottom-center (cancel button, sound-wave animation, confirm button).
+- Outside the main window, `createRecordingPopupWindow()` creates a `RecordingPopup` near the cursor. The popup is styled like `PopupPanel` (title bar + content area) and shows recording / transcribing states.
+
+`settings.voiceInputProvider` selects the recognition backend:
+
+- `'zhipu'` (default when Zhipu API key is configured): sends audio to Zhipu AI's `glm-asr-2512` ASR endpoint.
+- `'local'`: the main process writes the WAV to a temp file, calls `whisper-cli.exe` from `resources/whisper/` (packaged via `extraResources`), and returns the transcribed text.
+
+When `settings.voiceInputOptimize` is enabled, the raw ASR text is sent to DeepSeek via `src/main/utils/speech-optimizer.ts` to remove filler words, repetitions, and oral clutter, producing concise written text before it is returned to the renderer. The pair `{ rawText, optimizedText }` is saved to `store.get('speechOptimizations')` (max 20 records) so users can review the before/after in the `SpeechOptimizationPanel` accessible from the left sidebar.
+
+The `ggml-base-q8_0.gguf` model (~75MB) is downloaded on first use for local mode to `app.getPath('userData')/whisper/models/`.
+
+Voice input can be enabled/disabled, the provider chosen, optimization toggled, and its language hint configured in `SettingsPanel`.
+
+### Voice Input State Sync
+
+Because `voiceWin` and `recordingPopupWin` are separate renderer processes with separate Zustand stores, recording state is synchronized through the main process:
+
+- `VoiceRecordingPanel` sends `recording-state` to the main process whenever `isRecording`, `isTranscribing`, or `recordingDuration` changes.
+- The main process stores the latest state in `pendingRecordingState` and forwards it to `recordingPopupWin` via `recording-popup-state`.
+- `RecordingPopup` registers a listener for `recording-popup-state` and calls `recordingPopupReady()` after mounting so the main process can push the pending state immediately.
+
+### Cancel vs. Confirm
+
+Voice recording distinguishes between **cancel** and **confirm/complete**:
+
+- **Cancel** (`cancelRecording()`): stops the recorder, discards captured audio, and skips transcription/optimization/paste. Used by the cancel button in `RecordingPanel`/`RecordingPopup` and the close button in `RecordingPopup`.
+- **Confirm/Complete** (`stopRecording()`): stops the recorder and proceeds to transcribe → optimize → paste the result.
 
 ### Clipboard Monitor
 
@@ -125,7 +155,8 @@ Settings are stored with `electron-store` in the main process. On first load, th
 - Shortcut input component: `src/renderer/components/ShortcutInput.tsx`
 - Confirm dialog: `src/renderer/components/ConfirmDialog.tsx`
 - Popup panel (cross-selection): `src/renderer/components/PopupPanel.tsx`
-- Recording panel: `src/renderer/components/RecordingPanel.tsx`
+- Recording panel (in-app): `src/renderer/components/RecordingPanel.tsx`
+- Recording popup (external): `src/renderer/components/RecordingPopup.tsx`
 - Speech optimization panel: `src/renderer/components/SpeechOptimizationPanel.tsx`
 - Voice recorder: `src/renderer/components/VoiceRecorder.tsx`
 - Whisper service: `src/main/whisper-service.ts`
