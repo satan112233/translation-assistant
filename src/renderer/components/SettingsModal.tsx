@@ -348,8 +348,11 @@ export function SettingsPanel() {
                     全局快捷键，在翻译助手或外部窗口均可使用
                   </p>
                 </div>
-                <div className="px-3 py-1.5 text-sm rounded-md border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200">
-                  Control+Shift+V
+                <div
+                  className="px-3 py-1.5 text-sm rounded-md border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-500 transition-colors select-none"
+                  onClick={() => setCapturingVoiceShortcut(true)}
+                >
+                  {capturingVoiceShortcut ? '请按下一个按键...' : (draft.voiceInputShortcut || '未设置')}
                 </div>
               </div>
             </div>
