@@ -21,7 +21,7 @@ function domCodeToAccelerator(code: string): string {
   // Map DOM KeyboardEvent.code values to Electron accelerator syntax.
   const map: Record<string, string> = {
     AltLeft: 'Alt',
-    AltRight: 'RightAlt',
+    AltRight: 'AltGr',
     ControlLeft: 'Control',
     ControlRight: 'RightControl',
     ShiftLeft: 'Shift',

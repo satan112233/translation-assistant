@@ -150,7 +150,7 @@ const store = new Store<{
       voiceInputProvider: 'local',
       voiceInputOptimize: true,
       voiceInputLanguage: 'auto',
-      voiceInputShortcut: 'RightAlt',
+      voiceInputShortcut: 'AltGr',
     },
     history: [],
     favorites: [],
@@ -362,7 +362,7 @@ function normalizeAccelerator(shortcut: string): string {
   // instead of Electron accelerator syntax.
   const map: Record<string, string> = {
     AltLeft: 'Alt',
-    AltRight: 'RightAlt',
+    AltRight: 'AltGr',
     ControlLeft: 'Control',
     ControlRight: 'RightControl',
     ShiftLeft: 'Shift',
