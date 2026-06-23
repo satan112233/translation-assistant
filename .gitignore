@@ -24,6 +24,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# Claude Code local settings
+.claude/
+
 # Voice recognition binaries and models
 resources/whisper/whisper-cli.exe
 resources/whisper/models/*.bin
