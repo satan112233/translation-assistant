@@ -441,6 +441,7 @@ function createRecordingPopupWindow(): void {
     resizable: false,
     skipTaskbar: true,
     alwaysOnTop: true,
+    type: 'toolbar',
     focusable: false,
     backgroundColor: '#ffffff',
     webPreferences: {
@@ -449,6 +450,8 @@ function createRecordingPopupWindow(): void {
       nodeIntegration: false,
     },
   })
+
+  recordingPopupWin.setAlwaysOnTop(true, 'screen-saver')
 
   recordingPopupWin.on('ready-to-show', () => {
     recordingPopupWin?.showInactive()
