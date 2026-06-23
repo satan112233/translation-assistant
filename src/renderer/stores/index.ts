@@ -108,7 +108,7 @@ const defaultSettings: AppSettings = {
   voiceInputProvider: 'local',
   voiceInputOptimize: true,
   voiceInputLanguage: 'auto',
-  voiceInputShortcut: 'AltRight',
+  voiceInputShortcut: 'RightAlt',
 }
 
 function getConfiguredProviders(settings: AppSettings): string[] {

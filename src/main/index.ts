@@ -150,7 +150,7 @@ const store = new Store<{
       voiceInputProvider: 'local',
       voiceInputOptimize: true,
       voiceInputLanguage: 'auto',
-      voiceInputShortcut: 'AltRight',
+      voiceInputShortcut: 'RightAlt',
     },
     history: [],
     favorites: [],

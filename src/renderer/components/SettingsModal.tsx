@@ -17,6 +17,25 @@ const DEFAULT_SHORTCUTS = {
   crossSelection: 'CommandOrControl+Shift+C',
 }
 
+function domCodeToAccelerator(code: string): string {
+  // Map DOM KeyboardEvent.code values to Electron accelerator syntax.
+  const map: Record<string, string> = {
+    AltLeft: 'Alt',
+    AltRight: 'RightAlt',
+    ControlLeft: 'Control',
+    ControlRight: 'RightControl',
+    ShiftLeft: 'Shift',
+    ShiftRight: 'RightShift',
+    MetaLeft: 'Super',
+    MetaRight: 'Super',
+  }
+  if (map[code]) return map[code]
+  if (code.startsWith('Key')) return code.slice(3)
+  if (code.startsWith('Digit')) return code.slice(5)
+  if (code.startsWith('Numpad')) return code.slice(6)
+  return code
+}
+
 export function SettingsPanel() {
   const { settings, isLoaded, saveSettings } = useSettingsStore()
   const [draft, setDraft] = useState<AppSettings | null>(null)
@@ -61,7 +80,8 @@ export function SettingsPanel() {
     if (!capturingVoiceShortcut) return
     const handleKeyDown = (event: KeyboardEvent) => {
       event.preventDefault()
-      const next = { ...draft!, voiceInputShortcut: event.code }
+      const accelerator = domCodeToAccelerator(event.code)
+      const next = { ...draft!, voiceInputShortcut: accelerator }
       setDraft(next)
       void persist(next)
       setCapturingVoiceShortcut(false)
