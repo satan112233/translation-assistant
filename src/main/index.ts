@@ -38,6 +38,8 @@ const KEYEVENTF_KEYUP = 0x0002
 
 const HOTKEY_VKEYS = [VK_SHIFT, VK_CONTROL, VK_MENU, VK_C]
 
+const GLOBAL_VOICE_SHORTCUT = 'Ctrl+Alt+V'
+
 async function waitForHotkeyRelease(): Promise<void> {
   // Wait until all keys involved in the global shortcut are released.
   // This prevents the simulated Ctrl+C from becoming Ctrl+Shift+C
@@ -357,51 +359,22 @@ function isMainWindowFocused(): boolean {
   return mainValue === fgValue
 }
 
-function normalizeAccelerator(shortcut: string): string {
-  // Migrate legacy right-alt shortcuts to the new default; Electron globalShortcut
-  // cannot register a lone right Alt key on Windows.
-  const legacyAlts = ['AltRight', 'RightAlt', 'AltGr']
-  if (legacyAlts.includes(shortcut)) return 'Ctrl+Alt+V'
-
-  const map: Record<string, string> = {
-    AltLeft: 'Alt',
-    ControlLeft: 'Control',
-    ControlRight: 'Control',
-    ShiftLeft: 'Shift',
-    ShiftRight: 'Shift',
-    MetaLeft: 'Super',
-    MetaRight: 'Super',
-  }
-  if (map[shortcut]) return map[shortcut]
-  if (shortcut.startsWith('Key')) return shortcut.slice(3)
-  if (shortcut.startsWith('Digit')) return shortcut.slice(5)
-  if (shortcut.startsWith('Numpad')) return shortcut.slice(6)
-  return shortcut
-}
-
 function registerVoiceShortcut(): void {
   if (voiceShortcutRegistered) return
-  const rawShortcut = store.get('settings').voiceInputShortcut
-  const shortcut = normalizeAccelerator(rawShortcut)
-  if (!shortcut) return
-  const success = globalShortcut.register(shortcut, () => {
+  const success = globalShortcut.register(GLOBAL_VOICE_SHORTCUT, () => {
     void handleGlobalVoiceToggle()
   })
   if (!success) {
-    console.error('[main] failed to register global voice shortcut:', shortcut)
+    console.error('[main] failed to register global voice shortcut:', GLOBAL_VOICE_SHORTCUT)
     return
   }
   voiceShortcutRegistered = true
-  console.log('[main] global voice shortcut registered:', shortcut)
+  console.log('[main] global voice shortcut registered:', GLOBAL_VOICE_SHORTCUT)
 }
 
 function unregisterVoiceShortcut(): void {
   if (!voiceShortcutRegistered) return
-  const rawShortcut = store.get('settings').voiceInputShortcut
-  const shortcut = normalizeAccelerator(rawShortcut)
-  if (shortcut) {
-    globalShortcut.unregister(shortcut)
-  }
+  globalShortcut.unregister(GLOBAL_VOICE_SHORTCUT)
   voiceShortcutRegistered = false
   console.log('[main] global voice shortcut unregistered')
 }
@@ -701,11 +674,8 @@ ipcMain.handle('set-settings', (_event, settings) => {
     }
 
     // Register/unregister global voice hotkey when voice input setting changes
-    const voiceEnabledChanged = settings.voiceInputEnabled !== prev.voiceInputEnabled
-    const voiceShortcutChanged = settings.voiceInputShortcut !== prev.voiceInputShortcut
-    if (voiceEnabledChanged || (settings.voiceInputEnabled && voiceShortcutChanged)) {
+    if (settings.voiceInputEnabled !== prev.voiceInputEnabled) {
       if (settings.voiceInputEnabled) {
-        unregisterVoiceShortcut()
         registerVoiceShortcut()
         if (!voiceWin) createVoiceWindow()
       } else {

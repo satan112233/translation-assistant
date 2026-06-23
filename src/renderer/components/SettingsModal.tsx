@@ -17,29 +17,10 @@ const DEFAULT_SHORTCUTS = {
   crossSelection: 'CommandOrControl+Shift+C',
 }
 
-function domCodeToAccelerator(code: string): string {
-  // Map DOM KeyboardEvent.code values to Electron accelerator syntax.
-  const map: Record<string, string> = {
-    AltLeft: 'Alt',
-    ControlLeft: 'Control',
-    ControlRight: 'Control',
-    ShiftLeft: 'Shift',
-    ShiftRight: 'Shift',
-    MetaLeft: 'Super',
-    MetaRight: 'Super',
-  }
-  if (map[code]) return map[code]
-  if (code.startsWith('Key')) return code.slice(3)
-  if (code.startsWith('Digit')) return code.slice(5)
-  if (code.startsWith('Numpad')) return code.slice(6)
-  return code
-}
-
 export function SettingsPanel() {
   const { settings, isLoaded, saveSettings } = useSettingsStore()
   const [draft, setDraft] = useState<AppSettings | null>(null)
   const [savedIndicator, setSavedIndicator] = useState(false)
-  const [capturingVoiceShortcut, setCapturingVoiceShortcut] = useState(false)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const draftRef = useRef(draft)
 
@@ -73,21 +54,6 @@ export function SettingsPanel() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  // Capture a single key press for the voice input shortcut
-  useEffect(() => {
-    if (!capturingVoiceShortcut) return
-    const handleKeyDown = (event: KeyboardEvent) => {
-      event.preventDefault()
-      const accelerator = domCodeToAccelerator(event.code)
-      const next = { ...draft!, voiceInputShortcut: accelerator }
-      setDraft(next)
-      void persist(next)
-      setCapturingVoiceShortcut(false)
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [capturingVoiceShortcut, draft])
 
   const validateShortcuts = (shortcuts: AppSettings['shortcuts']) => {
     if (
@@ -368,10 +334,9 @@ export function SettingsPanel() {
                   </p>
                 </div>
                 <div
-                  className="px-3 py-1.5 text-sm rounded-md border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-500 transition-colors select-none"
-                  onClick={() => setCapturingVoiceShortcut(true)}
+                  className="px-3 py-1.5 text-sm rounded-md border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 select-none"
                 >
-                  {capturingVoiceShortcut ? '请按下一个按键...' : (draft.voiceInputShortcut || '未设置')}
+                  Ctrl+Alt+V
                 </div>
               </div>
             </div>
