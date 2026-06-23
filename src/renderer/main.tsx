@@ -3,14 +3,28 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'
 import { PopupPanel } from './components/PopupPanel'
+import { VoiceRecordingPanel } from './components/VoiceRecordingPanel'
+import { RecordingPopup } from './components/RecordingPopup'
 
-const isPopup = new URLSearchParams(window.location.search).get('mode') === 'popup'
+const params = new URLSearchParams(window.location.search)
+const mode = params.get('mode')
+const isPopup = mode === 'popup'
+const isVoice = mode === 'voice'
+const isRecordingPopup = mode === 'recording-popup'
 
-console.log('[renderer] main.tsx loaded, version:', typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown', 'mode:', isPopup ? 'popup' : 'main')
+console.log('[renderer] main.tsx loaded, version:', typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown', 'mode:', mode || 'main')
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {isPopup ? <PopupPanel /> : <App />}
+    {isPopup ? (
+      <PopupPanel />
+    ) : isVoice ? (
+      <VoiceRecordingPanel />
+    ) : isRecordingPopup ? (
+      <RecordingPopup />
+    ) : (
+      <App />
+    )}
   </StrictMode>,
 )
 

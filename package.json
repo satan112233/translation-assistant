@@ -1,7 +1,7 @@
 {
   "name": "translation-assistant",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.13.0",
   "type": "module",
   "main": "dist-electron/main/index.js",
   "scripts": {
@@ -11,6 +11,15 @@
     "postinstall": "electron-builder install-app-deps",
     "dist": "npm run build && electron-builder",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json"
+  },
+  "build": {
+    "extraResources": [
+      {
+        "from": "resources/whisper",
+        "to": "whisper",
+        "filter": ["**/*"]
+      }
+    ]
   },
   "dependencies": {
     "clsx": "^2.1.1",

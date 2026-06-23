@@ -1,15 +1,10 @@
-import { useEffect, useState } from 'react'
-import { X, Settings, Monitor, Sun, Moon, Keyboard } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
+import { Settings, Monitor, Sun, Moon, Keyboard, Check, Mic } from 'lucide-react'
 import { useSettingsStore } from '../stores'
 import { PROVIDER_LABELS } from '../../main/providers'
 import { LanguageSelector } from './LanguageSelector'
 import { ShortcutInput } from './ShortcutInput'
 import type { AppSettings } from '../../shared/types'
-
-interface SettingsModalProps {
-  isOpen: boolean
-  onClose: () => void
-}
 
 const THEME_OPTIONS = [
   { value: 'light', label: '浅色', icon: Sun },
@@ -22,37 +17,89 @@ const DEFAULT_SHORTCUTS = {
   crossSelection: 'CommandOrControl+Shift+C',
 }
 
-export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+export function SettingsPanel() {
   const { settings, isLoaded, saveSettings } = useSettingsStore()
   const [draft, setDraft] = useState<AppSettings | null>(null)
+  const [savedIndicator, setSavedIndicator] = useState(false)
+  const [capturingVoiceShortcut, setCapturingVoiceShortcut] = useState(false)
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const draftRef = useRef(draft)
+
+  // Sync ref with the latest draft on every render so the unmount cleanup can access it
+  draftRef.current = draft
 
   useEffect(() => {
-    if (isOpen && isLoaded) {
+    if (isLoaded) {
       setDraft({ ...settings })
     }
-  }, [isOpen, isLoaded, settings])
+  }, [isLoaded, settings])
 
-  if (!isOpen || !draft) return null
-
-  const handleSave = async () => {
-    try {
-      // Validate shortcut conflicts
-      const shortcuts = draft.shortcuts || DEFAULT_SHORTCUTS
-      if (
-        shortcuts.toggleWindow &&
-        shortcuts.crossSelection &&
-        shortcuts.toggleWindow === shortcuts.crossSelection
-      ) {
-        window.alert('快捷键冲突：两个全局快捷键不能设置为相同的组合')
-        return
+  // Persist any unsaved draft when the panel is unmounted
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+      const currentDraft = draftRef.current
+      if (currentDraft) {
+        const shortcuts = currentDraft.shortcuts
+        if (
+          shortcuts?.toggleWindow &&
+          shortcuts?.crossSelection &&
+          shortcuts.toggleWindow === shortcuts.crossSelection
+        ) {
+          return
+        }
+        void saveSettings(currentDraft).catch((err) => {
+          console.error('保存设置失败:', err)
+        })
       }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-      await saveSettings(draft)
-      onClose()
+  // Capture a single key press for the voice input shortcut
+  useEffect(() => {
+    if (!capturingVoiceShortcut) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      event.preventDefault()
+      const next = { ...draft!, voiceInputShortcut: event.code }
+      setDraft(next)
+      void persist(next)
+      setCapturingVoiceShortcut(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [capturingVoiceShortcut, draft])
+
+  const validateShortcuts = (shortcuts: AppSettings['shortcuts']) => {
+    if (
+      shortcuts?.toggleWindow &&
+      shortcuts?.crossSelection &&
+      shortcuts.toggleWindow === shortcuts.crossSelection
+    ) {
+      return false
+    }
+    return true
+  }
+
+  const persist = async (nextSettings: AppSettings) => {
+    if (!validateShortcuts(nextSettings.shortcuts)) {
+      return
+    }
+    try {
+      await saveSettings(nextSettings)
+      setSavedIndicator(true)
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = setTimeout(() => setSavedIndicator(false), 1500)
     } catch (err) {
       console.error('保存设置失败:', err)
-      const message = err instanceof Error ? err.message : '未知错误'
-      window.alert(`保存失败：${message}`)
+    }
+  }
+
+  if (!isLoaded || !draft) return null
+
+  const saveDraft = async () => {
+    if (draft) {
+      await persist(draft)
     }
   }
 
@@ -80,29 +127,32 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const canUseComparisonMode = configuredProviders.length >= 2
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-[560px] max-h-[80vh] bg-white dark:bg-gray-800 rounded-xl shadow-xl flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2">
-            <Settings size={18} className="text-gray-600 dark:text-gray-300" />
-            <h2 className="text-base font-medium text-gray-800 dark:text-gray-100">设置</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-          >
-            <X size={18} />
-          </button>
+    <div className="flex flex-col h-full bg-white dark:bg-gray-800">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2">
+          <Settings size={18} className="text-gray-600 dark:text-gray-300" />
+          <h2 className="text-base font-medium text-gray-800 dark:text-gray-100">设置</h2>
         </div>
+        {savedIndicator && (
+          <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+            <Check size={14} />
+            <span>已保存</span>
+          </div>
+        )}
+      </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-6">
+      <div className="flex-1 overflow-y-auto p-5 space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">外观主题</label>
             <div className="flex gap-2">
               {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
                 <button
                   key={value}
-                  onClick={() => setDraft({ ...draft, theme: value })}
+                  onClick={() => {
+                    const next = { ...draft, theme: value }
+                    setDraft(next)
+                    void persist(next)
+                  }}
                   className={`
                     flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-md border transition-colors
                     ${draft.theme === value
@@ -121,7 +171,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">划词翻译默认目标语言</label>
             <LanguageSelector
               value={draft.popupTargetLang}
-              onChange={(lang) => setDraft({ ...draft, popupTargetLang: lang })}
+              onChange={(lang) => {
+                const next = { ...draft, popupTargetLang: lang }
+                setDraft(next)
+                void persist(next)
+              }}
             />
             <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">设置划词翻译时默认使用的目标语言。</p>
           </div>
@@ -133,7 +187,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">复制任意文本后自动弹出翻译窗口</p>
             </div>
             <button
-              onClick={() => setDraft({ ...draft, clipboardMonitor: !draft.clipboardMonitor })}
+              onClick={() => {
+                const next = { ...draft, clipboardMonitor: !draft.clipboardMonitor }
+                setDraft(next)
+                void persist(next)
+              }}
               className={`
                 relative inline-flex h-6 w-11 items-center rounded-full transition-colors
                 ${draft.clipboardMonitor
@@ -157,7 +215,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">翻译完成后自动将译文复制到剪贴板</p>
             </div>
             <button
-              onClick={() => setDraft({ ...draft, autoCopyResult: !draft.autoCopyResult })}
+              onClick={() => {
+                const next = { ...draft, autoCopyResult: !draft.autoCopyResult }
+                setDraft(next)
+                void persist(next)
+              }}
               className={`
                 relative inline-flex h-6 w-11 items-center rounded-full transition-colors
                 ${draft.autoCopyResult
@@ -173,6 +235,125 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               />
             </button>
           </div>
+
+          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Mic size={16} className="text-gray-600 dark:text-gray-300" />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">语音输入</label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">在翻译输入框显示麦克风按钮，录音后自动转文字</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                const next = { ...draft, voiceInputEnabled: !draft.voiceInputEnabled }
+                setDraft(next)
+                void persist(next)
+              }}
+              className={`
+                relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                ${draft.voiceInputEnabled
+                  ? 'bg-blue-600'
+                  : 'bg-gray-300 dark:bg-gray-600'}
+              `}
+            >
+              <span
+                className={`
+                  inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                  ${draft.voiceInputEnabled ? 'translate-x-6' : 'translate-x-1'}
+                `}
+              />
+            </button>
+          </div>
+
+          {draft.voiceInputEnabled && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">语音识别服务</label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'zhipu', label: '智谱 AI', desc: '需配置智谱 API Key' },
+                    { value: 'local', label: '本地 whisper.cpp', desc: '需本地二进制和模型' },
+                  ].map(({ value, label, desc }) => (
+                    <button
+                      key={value}
+                      onClick={() => {
+                        const next = { ...draft, voiceInputProvider: value as 'zhipu' | 'local' }
+                        setDraft(next)
+                        void persist(next)
+                      }}
+                      className={`
+                        flex-1 px-3 py-2 text-sm rounded-md border transition-colors text-left
+                        ${draft.voiceInputProvider === value
+                          ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300'
+                          : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600'}
+                      `}
+                    >
+                      <span className="block font-medium">{label}</span>
+                      <span className="block text-xs opacity-75 mt-0.5">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">口语内容优化</label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    使用 DeepSeek 将口语化识别结果提炼为简洁精准的书面语
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const next = { ...draft, voiceInputOptimize: !draft.voiceInputOptimize }
+                    setDraft(next)
+                    void persist(next)
+                  }}
+                  className={`
+                    relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                    ${draft.voiceInputOptimize
+                      ? 'bg-blue-600'
+                      : 'bg-gray-300 dark:bg-gray-600'}
+                  `}
+                >
+                  <span
+                    className={`
+                      inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                      ${draft.voiceInputOptimize ? 'translate-x-6' : 'translate-x-1'}
+                    `}
+                  />
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">语音识别语言</label>
+                <LanguageSelector
+                  includeAuto
+                  value={draft.voiceInputLanguage}
+                  onChange={(lang) => {
+                    const next = { ...draft, voiceInputLanguage: lang }
+                    setDraft(next)
+                    void persist(next)
+                  }}
+                />
+                <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  选择“自动”时由识别服务自行检测语言。
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">语音输入快捷键</label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    全局快捷键，在翻译助手或外部窗口均可使用
+                  </p>
+                </div>
+                <div className="px-3 py-1.5 text-sm rounded-md border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200">
+                  Control+Shift+V
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-4">
             <div className="flex items-center gap-2">
@@ -195,6 +376,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   }
                 })
               }
+              onBlur={saveDraft}
             />
             <ShortcutInput
               label="划词翻译"
@@ -212,6 +394,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   }
                 })
               }
+              onBlur={saveDraft}
             />
             {draft.shortcuts?.toggleWindow &&
               draft.shortcuts?.crossSelection &&
@@ -226,7 +409,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               {Object.entries(PROVIDER_LABELS).map(([key, label]) => (
                 <button
                   key={key}
-                  onClick={() => setDraft({ ...draft, defaultProvider: key })}
+                  onClick={() => {
+                    const next = { ...draft, defaultProvider: key }
+                    setDraft(next)
+                    void persist(next)
+                  }}
                   className={`
                     flex-1 px-3 py-2 text-sm rounded-md border transition-colors
                     ${draft.defaultProvider === key
@@ -248,7 +435,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </div>
               {canUseComparisonMode ? (
                 <button
-                  onClick={() => setDraft({ ...draft, comparisonMode: !draft.comparisonMode })}
+                  onClick={() => {
+                    const next = { ...draft, comparisonMode: !draft.comparisonMode }
+                    setDraft(next)
+                    void persist(next)
+                  }}
                   className={`
                     relative inline-flex h-6 w-11 items-center rounded-full transition-colors
                     ${draft.comparisonMode
@@ -292,6 +483,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   type="password"
                   value={activeConfig.apiKey}
                   onChange={(e) => updateProvider(activeProvider, 'apiKey', e.target.value)}
+                  onBlur={saveDraft}
                   placeholder="输入 API Key"
                   className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -302,6 +494,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   type="text"
                   value={activeConfig.baseUrl}
                   onChange={(e) => updateProvider(activeProvider, 'baseUrl', e.target.value)}
+                  onBlur={saveDraft}
                   placeholder="https://api.example.com/v1"
                   className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -312,6 +505,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   type="text"
                   value={activeConfig.model}
                   onChange={(e) => updateProvider(activeProvider, 'model', e.target.value)}
+                  onBlur={saveDraft}
                   placeholder="模型名称"
                   className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -319,27 +513,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
           )}
         </div>
-
-        <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-          >
-            取消
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={
-              draft.shortcuts?.toggleWindow &&
-              draft.shortcuts?.crossSelection &&
-              draft.shortcuts.toggleWindow === draft.shortcuts.crossSelection
-            }
-            className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            保存
-          </button>
-        </div>
       </div>
-    </div>
   )
 }

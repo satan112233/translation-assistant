@@ -32,3 +32,16 @@ body {
 .app-drag-region input {
   -webkit-app-region: no-drag;
 }
+
+@keyframes sound-wave {
+  0%, 100% {
+    height: 0.5rem;
+  }
+  50% {
+    height: 2rem;
+  }
+}
+
+.animate-sound-wave {
+  animation: sound-wave 0.8s ease-in-out infinite;
+}

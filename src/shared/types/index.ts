@@ -44,6 +44,21 @@ export interface AppSettings {
   glossary: GlossaryEntry[]
   popupPinned: boolean
   autoCopyResult: boolean
+  voiceInputEnabled: boolean
+  voiceInputProvider: 'local' | 'zhipu'
+  voiceInputOptimize: boolean
+  voiceInputLanguage: 'auto' | LanguageCode
+  voiceInputShortcut: string
+}
+
+export interface TranscribeAudioRequest {
+  audioBase64: string
+  language?: 'auto' | LanguageCode
+}
+
+export interface TranscribeAudioResult {
+  text: string
+  language?: string
 }
 
 export interface MultiTranslateRequest {
@@ -78,6 +93,15 @@ export interface SaveTextFileResult {
   canceled: boolean
   filePath?: string
 }
+
+export interface SpeechOptimizationRecord {
+  id: string
+  rawText: string
+  optimizedText: string
+  timestamp: number
+}
+
+export const MAX_SPEECH_OPTIMIZATION_COUNT = 20
 
 export interface TranslationProvider {
   name: string

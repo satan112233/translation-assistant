@@ -1,11 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRightLeft, Copy, Check, Settings, Languages, History, Volume2, Square, Star, FileDown, BookOpen } from 'lucide-react'
-import { useTranslationStore, useSettingsStore, useHistoryStore, useFavoritesStore, useGlossaryStore } from '../stores'
+import { ArrowRightLeft, Copy, Check, Languages, Volume2, Square, Star, FileDown } from 'lucide-react'
+import { useTranslationStore, useSettingsStore, useHistoryStore, useFavoritesStore, useRecordingStore } from '../stores'
 import { LanguageSelector } from './LanguageSelector'
-import { SettingsModal } from './SettingsModal'
-import { HistoryPanel } from './HistoryPanel'
-import { FavoritesPanel } from './FavoritesPanel'
-import { GlossaryPanel } from './GlossaryPanel'
+import { VoiceRecorder } from './VoiceRecorder'
 import { PROVIDER_LABELS } from '../../main/providers'
 import type { LanguageCode, ProviderTranslationResult, TranslationResult } from '../../shared/types'
 import { clsx, type ClassValue } from 'clsx'
@@ -35,24 +32,34 @@ export function TranslationPanel() {
   const { settings, isLoaded } = useSettingsStore()
   const { loadHistory } = useHistoryStore()
   const { loadFavorites } = useFavoritesStore()
-  const { loadGlossary } = useGlossaryStore()
-  const [showSettings, setShowSettings] = useState(false)
-  const [showHistory, setShowHistory] = useState(false)
-  const [showFavorites, setShowFavorites] = useState(false)
-  const [showGlossary, setShowGlossary] = useState(false)
+  const { isTranscribing, transcribedText, setTranscribedText } = useRecordingStore()
   const [isOcrProcessing, setIsOcrProcessing] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const translateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastRequestRef = useRef({ inputText, sourceLang, targetLang })
 
   useEffect(() => {
     void loadHistory()
     void loadFavorites()
-    void loadGlossary()
     return () => {
       if (translateTimeoutRef.current) clearTimeout(translateTimeoutRef.current)
     }
-  }, [loadHistory, loadFavorites, loadGlossary])
+  }, [loadHistory, loadFavorites])
+
+  // Auto-focus textarea when the translate view becomes active
+  useEffect(() => {
+    textareaRef.current?.focus()
+  }, [])
+
+  // Apply voice transcription result to input
+  useEffect(() => {
+    if (transcribedText !== null && transcribedText.trim()) {
+      setInputText(transcribedText)
+      setTranscribedText(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transcribedText])
 
   // Auto-switch target language based on detected input text (only when sourceLang is 'auto')
   useEffect(() => {
@@ -203,34 +210,6 @@ export function TranslationPanel() {
                 : PROVIDER_LABELS[settings.defaultProvider] || settings.defaultProvider
               : '加载中...'}
           </span>
-          <button
-            onClick={() => setShowFavorites(true)}
-            className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-md transition-colors"
-            title="收藏夹"
-          >
-            <Star size={18} />
-          </button>
-          <button
-            onClick={() => setShowGlossary(true)}
-            className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-colors"
-            title="术语库"
-          >
-            <BookOpen size={18} />
-          </button>
-          <button
-            onClick={() => setShowHistory(true)}
-            className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
-            title="翻译历史"
-          >
-            <History size={18} />
-          </button>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-            title="设置"
-          >
-            <Settings size={18} />
-          </button>
         </div>
       </div>
 
@@ -246,9 +225,7 @@ export function TranslationPanel() {
             <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              onFocus={() => {
-                if (showHistory) setShowHistory(false)
-              }}
+              ref={textareaRef}
               onPaste={handlePaste}
               placeholder="输入要翻译的文本，粘贴图片进行 OCR 识别，或拖拽 .txt / .md 文件到此处…"
               className={cn(
@@ -274,15 +251,28 @@ export function TranslationPanel() {
                 </div>
               </div>
             )}
+            {isTranscribing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-800/80">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm text-gray-600 dark:text-gray-300">正在识别语音...</span>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex-none flex items-center justify-between px-4 py-2 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
             <span className="text-xs text-gray-400 dark:text-gray-500">{inputText.length} 字符</span>
-            <button
-              onClick={() => setInputText('')}
-              className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              清空
-            </button>
+            <div className="flex items-center gap-2">
+              {settings.voiceInputEnabled && (
+                <VoiceRecorder />
+              )}
+              <button
+                onClick={() => setInputText('')}
+                className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                清空
+              </button>
+            </div>
           </div>
         </div>
 
@@ -337,11 +327,6 @@ export function TranslationPanel() {
           </div>
         </div>
       </div>
-
-      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
-      <HistoryPanel isOpen={showHistory} onClose={() => setShowHistory(false)} />
-      <FavoritesPanel isOpen={showFavorites} onClose={() => setShowFavorites(false)} />
-      <GlossaryPanel isOpen={showGlossary} onClose={() => setShowGlossary(false)} />
     </div>
   )
 }

@@ -1,22 +1,19 @@
-import { useState } from 'react'
-import { BookOpen, X, Trash2, Search, Plus, Pencil } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { BookOpen, Plus, Pencil, Search, Trash2 } from 'lucide-react'
 import { useGlossaryStore } from '../stores'
 import type { GlossaryEntry } from '../../shared/types'
 
-interface GlossaryPanelProps {
-  isOpen: boolean
-  onClose: () => void
-}
-
-export function GlossaryPanel({ isOpen, onClose }: GlossaryPanelProps) {
-  const { glossary, isLoaded, addGlossaryEntry, deleteGlossaryEntry, updateGlossaryEntry } = useGlossaryStore()
+export function GlossaryPanel() {
+  const { glossary, isLoaded, loadGlossary, addGlossaryEntry, deleteGlossaryEntry, updateGlossaryEntry } = useGlossaryStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [termDraft, setTermDraft] = useState('')
   const [translationDraft, setTranslationDraft] = useState('')
   const [noteDraft, setNoteDraft] = useState('')
 
-  if (!isOpen) return null
+  useEffect(() => {
+    void loadGlossary()
+  }, [loadGlossary])
 
   const filtered = glossary.filter((entry) => {
     const q = searchQuery.trim().toLowerCase()
@@ -78,7 +75,7 @@ export function GlossaryPanel({ isOpen, onClose }: GlossaryPanelProps) {
   }
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-80 bg-white dark:bg-gray-800 shadow-xl border-l border-gray-200 dark:border-gray-700 flex flex-col">
+    <div className="flex flex-col h-full bg-white dark:bg-gray-800">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2">
           <BookOpen size={18} className="text-green-600 dark:text-green-400" />
@@ -92,12 +89,6 @@ export function GlossaryPanel({ isOpen, onClose }: GlossaryPanelProps) {
             title="添加术语"
           >
             <Plus size={16} />
-          </button>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-          >
-            <X size={18} />
           </button>
         </div>
       </div>

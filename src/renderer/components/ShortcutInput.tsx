@@ -7,6 +7,7 @@ interface ShortcutInputProps {
   defaultValue: string
   label: string
   placeholder?: string
+  onBlur?: () => void
 }
 
 const MODIFIER_KEYS = new Set([
@@ -61,6 +62,7 @@ export function ShortcutInput({
   defaultValue,
   label,
   placeholder = '点击此处并按快捷键组合',
+  onBlur,
 }: ShortcutInputProps) {
   const [isRecording, setIsRecording] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -100,7 +102,10 @@ export function ShortcutInput({
             value={displayValue}
             onKeyDown={handleKeyDown}
             onFocus={() => setIsRecording(true)}
-            onBlur={() => setIsRecording(false)}
+            onBlur={() => {
+              setIsRecording(false)
+              onBlur?.()
+            }}
             className={`
               w-full h-10 px-3 text-sm rounded-md border outline-none transition-colors
               ${isRecording

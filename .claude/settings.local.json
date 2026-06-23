@@ -19,7 +19,20 @@
       "Bash(git init *)",
       "Bash(git config *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(npx electron-vite *)",
+      "mcp__chrome-devtools__list_pages",
+      "Bash(netstat -ano)",
+      "Bash(taskkill *)",
+      "Bash(curl -s http://localhost:9222/json)",
+      "Bash(npx eslint *)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(MSYS_NO_PATHCONV=1 taskkill /F /IM node.exe /IM electron.exe)",
+      "Bash(ps *)",
+      "Bash(wmic process *)",
+      "Bash(cmd.exe /c \"wmic process where ProcessId=20372 get CommandLine /value\")",
+      "Bash(powershell.exe -Command \"Get-CimInstance Win32_Process -Filter \\\\\"ProcessId=20372\\\\\" | Select-Object CommandLine | Format-List\")"
     ]
   }
 }

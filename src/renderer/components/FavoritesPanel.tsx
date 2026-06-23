@@ -1,23 +1,15 @@
 import { useState } from 'react'
-import { Star, X, Trash2, Search, Download } from 'lucide-react'
-import { useFavoritesStore, useTranslationStore } from '../stores'
-import { ConfirmDialog } from './ConfirmDialog'
+import { Star, Trash2, Search, Download } from 'lucide-react'
+import { useFavoritesStore, useTranslationStore, useUIStore } from '../stores'
 import type { FavoriteRecord } from '../../shared/types'
 
-interface FavoritesPanelProps {
-  isOpen: boolean
-  onClose: () => void
-}
-
-export function FavoritesPanel({ isOpen, onClose }: FavoritesPanelProps) {
+export function FavoritesPanel() {
   const { favorites, isLoaded, deleteFavorite, updateFavoriteNote } = useFavoritesStore()
   const { loadFromHistory } = useTranslationStore()
+  const { setActiveView } = useUIStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [noteDraft, setNoteDraft] = useState('')
-  const [showClearConfirm, setShowClearConfirm] = useState(false)
-
-  if (!isOpen) return null
 
   const filtered = favorites.filter((f) => {
     const q = searchQuery.trim().toLowerCase()
@@ -31,7 +23,7 @@ export function FavoritesPanel({ isOpen, onClose }: FavoritesPanelProps) {
 
   const handleLoad = (record: FavoriteRecord) => {
     loadFromHistory(record)
-    onClose()
+    setActiveView('translate')
   }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -66,7 +58,7 @@ export function FavoritesPanel({ isOpen, onClose }: FavoritesPanelProps) {
   }
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-80 bg-white dark:bg-gray-800 shadow-xl border-l border-gray-200 dark:border-gray-700 flex flex-col">
+    <div className="flex flex-col h-full bg-white dark:bg-gray-800">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2">
           <Star size={18} className="text-yellow-500" />
@@ -83,12 +75,6 @@ export function FavoritesPanel({ isOpen, onClose }: FavoritesPanelProps) {
               <Download size={16} />
             </button>
           )}
-          <button
-            onClick={onClose}
-            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-          >
-            <X size={18} />
-          </button>
         </div>
       </div>
 

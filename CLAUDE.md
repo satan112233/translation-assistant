@@ -20,7 +20,7 @@ There are currently no test scripts configured.
 
 The project is structured around three Electron processes:
 
-- **`src/main/`** — Electron main process. Creates the window, manages the system tray, registers global shortcuts (`Ctrl+Shift+T` and `Ctrl+Shift+C` for cross-selection), persists settings via `electron-store`, makes all LLM API requests, runs OCR via `tesseract.js`, and polls clipboard when clipboard monitoring is enabled.
+- **`src/main/`** — Electron main process. Creates the window, manages the system tray, registers global shortcuts (`Ctrl+Shift+T` and `Ctrl+Shift+C` for cross-selection), persists settings via `electron-store`, makes all LLM API requests, runs OCR via `tesseract.js`, runs offline speech recognition via `whisper.cpp` or Zhipu ASR, saves speech optimization records, and polls clipboard when clipboard monitoring is enabled.
 - **`src/preload/`** — Preload script, built as CommonJS. Exposes a typed `window.electronAPI` bridge so the renderer can invoke main-process IPC handlers safely.
 - **`src/renderer/`** — React application. Manages UI state with Zustand and renders the translation interface.
 - **`src/shared/`** — Shared TypeScript types used by both main and renderer.
@@ -29,12 +29,15 @@ The project is structured around three Electron processes:
 
 The renderer communicates with the main process through these channels:
 
-- `get-settings` / `set-settings` — Load and persist app settings (API keys, provider config, window bounds, always-on-top state, theme, popup target language, clipboard monitor, shortcuts, comparison mode).
+- `get-settings` / `set-settings` — Load and persist app settings (API keys, provider config, window bounds, always-on-top state, theme, popup target language, clipboard monitor, shortcuts, comparison mode, glossary, popup pinned state, auto-copy result, voice input enabled, voice input language).
+- `get-glossary` / `set-glossary` — Load and persist the terminology glossary used to guide translations.
 - `translate` — Send translation parameters to the main process, which calls a single LLM and returns the result.
 - `translate-multi` — Send parameters for multiple configured providers; the main process calls them in parallel and returns per-provider results.
 - `ocr-image` — Send a base64 image to the main process for OCR text recognition.
+- `transcribe-audio` — Send a base64 WAV audio to the main process for offline speech-to-text via whisper.cpp.
 - `read-text-file` / `save-text-file` — Read a dragged `.txt` / `.md` file or save translation result to disk.
 - `get-history` / `add-history` / `clear-history` / `delete-history-item` — Translation history management.
+- `get-speech-optimizations` / `add-speech-optimization` / `clear-speech-optimizations` / `delete-speech-optimization-item` — Speech optimization record management (raw vs optimized ASR text).
 - `get-favorites` / `add-favorite` / `delete-favorite` / `update-favorite-note` — Favorites / vocabulary book management.
 - `window-minimize` / `window-close` / `window-set-always-on-top` — Window controls.
 
@@ -64,6 +67,17 @@ Settings are stored with `electron-store` in the main process. On first load, th
 - The worker loads `chi_sim+eng+jpn` language packs from CDN on first run (~5-6MB). Subsequent OCR requests reuse the worker.
 - The `ocr-image` IPC handler receives a base64 image and returns recognized text.
 
+### Voice Input (whisper.cpp / Zhipu ASR / DeepSeek optimization)
+
+- The renderer's `VoiceRecorder` component records microphone audio via `MediaRecorder`, converts it to a 16kHz mono WAV using the Web Audio API, and sends it to the main process through `transcribe-audio`.
+- Pressing the configured **voice input shortcut** (default `AltRight`) toggles recording in the translation panel. A floating `RecordingPanel` appears at the bottom-center showing a cancel button, sound-wave animation, and confirm button; pressing the shortcut again or clicking either button stops recording.
+- `settings.voiceInputProvider` selects the recognition backend:
+  - `'zhipu'` (default when Zhipu API key is configured): sends audio to Zhipu AI's `glm-asr-2512` ASR endpoint.
+  - `'local'`: the main process writes the WAV to a temp file, calls `whisper-cli.exe` from `resources/whisper/` (packaged via `extraResources`), and returns the transcribed text.
+- When `settings.voiceInputOptimize` is enabled, the raw ASR text is sent to DeepSeek via `src/main/utils/speech-optimizer.ts` to remove filler words, repetitions, and oral clutter, producing concise written text before it is returned to the renderer. The pair `{ rawText, optimizedText }` is saved to `store.get('speechOptimizations')` (max 20 records) so users can review the before/after in the `SpeechOptimizationPanel` accessible from the left sidebar.
+- The `ggml-base-q8_0.gguf` model (~75MB) is downloaded on first use for local mode to `app.getPath('userData')/whisper/models/`.
+- Voice input can be enabled/disabled, the provider chosen, optimization toggled, and its language hint configured in `SettingsPanel`.
+
 ### Clipboard Monitor
 
 - When enabled via `settings.clipboardMonitor`, the main process polls the clipboard every 500ms.
@@ -83,6 +97,9 @@ Settings are stored with `electron-store` in the main process. On first load, th
 - Document translation: drag a `.txt` or `.md` file onto the input area to read its contents and trigger translation automatically. The renderer uses `window.electronAPI.getFilePath()` (via `electron.webUtils.getPathForFile`) to obtain the real file path, then asks the main process to read the file.
 - Customizable global shortcuts: `SettingsModal` exposes inputs for the two global shortcuts. Values are converted to Electron accelerator strings and persisted in `settings.shortcuts`; the main process re-registers shortcuts whenever they change.
 - Multi-model comparison translation: when `settings.comparisonMode` is enabled and at least two providers have API keys, the store calls `translate-multi`. The main process uses `Promise.allSettled()` so a failure in one provider does not affect the others.
+- Terminology glossary: users can add terms and their preferred translations in `GlossaryPanel`. The main process injects the glossary into the translation prompt so the model follows the specified terms.
+- Left sidebar navigation: `MainLayout` renders `Sidebar` plus the active content view (`TranslationPanel`, `GlossaryPanel`, `FavoritesPanel`, `HistoryPanel`, `SpeechOptimizationPanel`, or `SettingsPanel`). `useUIStore` tracks `activeView` and `sidebarCollapsed`.
+- Sidebar collapse: `Sidebar` can be collapsed to icon-only mode via the toggle button in its header. The collapsed state is stored in `useUIStore` (not persisted to disk).
 
 ## TypeScript Configuration
 
@@ -103,11 +120,18 @@ Settings are stored with `electron-store` in the main process. On first load, th
 - Theme hook: `src/renderer/hooks/useTheme.ts`
 - Settings UI: `src/renderer/components/SettingsModal.tsx`
 - Translation UI: `src/renderer/components/TranslationPanel.tsx`
+- Sidebar / navigation: `src/renderer/components/Sidebar.tsx`
+- Main layout / view switcher: `src/renderer/components/MainLayout.tsx`
 - Shortcut input component: `src/renderer/components/ShortcutInput.tsx`
 - Confirm dialog: `src/renderer/components/ConfirmDialog.tsx`
 - Popup panel (cross-selection): `src/renderer/components/PopupPanel.tsx`
+- Recording panel: `src/renderer/components/RecordingPanel.tsx`
+- Speech optimization panel: `src/renderer/components/SpeechOptimizationPanel.tsx`
+- Voice recorder: `src/renderer/components/VoiceRecorder.tsx`
+- Whisper service: `src/main/whisper-service.ts`
 - History panel: `src/renderer/components/HistoryPanel.tsx`
 - Favorites panel: `src/renderer/components/FavoritesPanel.tsx`
+- Glossary / terminology panel: `src/renderer/components/GlossaryPanel.tsx`
 
 ## Packaging
 

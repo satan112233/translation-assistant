@@ -1,25 +1,19 @@
 import { useState } from 'react'
-import { History, X, Trash2, Clock } from 'lucide-react'
-import { useHistoryStore, useTranslationStore } from '../stores'
+import { History, Trash2, Clock } from 'lucide-react'
+import { useHistoryStore, useTranslationStore, useUIStore } from '../stores'
 import { ConfirmDialog } from './ConfirmDialog'
 import { MAX_HISTORY_COUNT } from '../../shared/types'
 import type { HistoryRecord } from '../../shared/types'
 
-interface HistoryPanelProps {
-  isOpen: boolean
-  onClose: () => void
-}
-
-export function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
+export function HistoryPanel() {
   const { history, isLoaded, clearHistory, deleteHistoryItem } = useHistoryStore()
   const { loadFromHistory } = useTranslationStore()
+  const { setActiveView } = useUIStore()
   const [showClearConfirm, setShowClearConfirm] = useState(false)
-
-  if (!isOpen) return null
 
   const handleRecordClick = (record: HistoryRecord) => {
     loadFromHistory(record)
-    onClose()
+    setActiveView('translate')
   }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -33,7 +27,7 @@ export function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
   }
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-80 bg-white dark:bg-gray-800 shadow-xl border-l border-gray-200 dark:border-gray-700 flex flex-col">
+    <div className="flex flex-col h-full bg-white dark:bg-gray-800">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2">
           <History size={18} className="text-blue-600 dark:text-blue-400" />
@@ -50,12 +44,6 @@ export function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
               <Trash2 size={16} />
             </button>
           )}
-          <button
-            onClick={onClose}
-            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-          >
-            <X size={18} />
-          </button>
         </div>
       </div>
 

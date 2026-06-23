@@ -5,11 +5,20 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import koffi from 'koffi'
 import Store from 'electron-store'
 import { createProvider } from './providers'
-import { MAX_HISTORY_COUNT } from '../shared/types'
-import type { GlossaryEntry, MultiTranslateRequest, MultiTranslateResult, TranslateRequest } from '../shared/types'
+import { terminateActiveWhisperProcess, transcribeAudio } from './whisper-service'
+import { transcribeWithZhipu } from './zhipu-asr-service'
+import { optimizeSpeech } from './utils/speech-optimizer'
+import { MAX_HISTORY_COUNT, MAX_SPEECH_OPTIMIZATION_COUNT } from '../shared/types'
+import type { GlossaryEntry, MultiTranslateRequest, MultiTranslateResult, TranslateRequest, TranscribeAudioRequest, SpeechOptimizationRecord } from '../shared/types'
 import { createWorker, type Worker } from 'tesseract.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+function isMeaningfulSpeechText(text: string): boolean {
+  if (!text || !text.trim()) return false
+  // Consider text meaningful if it contains at least one CJK, Latin letter, Hiragana/Katakana, or digit
+  return /[一-龥a-zA-Z0-9぀-ゟ゠-ヿ]/.test(text)
+}
 
 process.env.APP_ROOT = path.join(__dirname, '../..')
 
@@ -24,9 +33,12 @@ const VK_SHIFT = 0x10
 const VK_CONTROL = 0x11
 const VK_MENU = 0x12
 const VK_C = 0x43
+const VK_V = 0x56
 const KEYEVENTF_KEYUP = 0x0002
 
 const HOTKEY_VKEYS = [VK_SHIFT, VK_CONTROL, VK_MENU, VK_C]
+
+const GLOBAL_VOICE_SHORTCUT = 'Control+Shift+V'
 
 async function waitForHotkeyRelease(): Promise<void> {
   // Wait until all keys involved in the global shortcut are released.
@@ -72,6 +84,11 @@ const store = new Store<{
     glossary: GlossaryEntry[]
     popupPinned: boolean
     autoCopyResult: boolean
+    voiceInputEnabled: boolean
+    voiceInputProvider: 'local' | 'zhipu'
+    voiceInputOptimize: boolean
+    voiceInputLanguage: 'auto' | 'zh' | 'en' | 'ja'
+    voiceInputShortcut: string
   }
   history: Array<{
     id: string
@@ -94,6 +111,7 @@ const store = new Store<{
     timestamp: number
     note?: string
   }>
+  speechOptimizations: SpeechOptimizationRecord[]
 }>({
   defaults: {
     settings: {
@@ -130,18 +148,30 @@ const store = new Store<{
       glossary: [],
       popupPinned: false,
       autoCopyResult: false,
+      voiceInputEnabled: true,
+      voiceInputProvider: 'local',
+      voiceInputOptimize: true,
+      voiceInputLanguage: 'auto',
+      voiceInputShortcut: 'Control+Shift+V',
     },
     history: [],
     favorites: [],
+    speechOptimizations: [],
   },
 })
 
 let win: BrowserWindow | null = null
 let popupWin: BrowserWindow | null = null
+let voiceWin: BrowserWindow | null = null
+let recordingPopupWin: BrowserWindow | null = null
 let tray: Tray | null = null
 let ocrWorker: Worker | null = null
 let clipboardMonitorInterval: ReturnType<typeof setInterval> | null = null
 let lastClipboardText = ''
+
+let voiceShortcutRegistered = false
+let globalVoiceRecording = false
+let lastForegroundHwnd: unknown = null
 
 async function initOcrWorker(): Promise<void> {
   try {
@@ -319,6 +349,185 @@ function createPopupWindow(selectedText: string): void {
   void popupWin.loadURL(popupUrl)
 }
 
+function isMainWindowFocused(): boolean {
+  if (!win) return false
+  const mainHwnd = win.getNativeWindowHandle()
+  const fgHwnd = GetForegroundWindow()
+  if (!fgHwnd) return false
+  const mainValue = mainHwnd.readBigUInt64LE(0)
+  const fgValue = BigInt(fgHwnd as unknown as bigint)
+  return mainValue === fgValue
+}
+
+function registerVoiceShortcut(): void {
+  if (voiceShortcutRegistered) return
+  const success = globalShortcut.register(GLOBAL_VOICE_SHORTCUT, () => {
+    void handleGlobalVoiceToggle()
+  })
+  if (!success) {
+    console.error('[main] failed to register global voice shortcut:', GLOBAL_VOICE_SHORTCUT)
+    return
+  }
+  voiceShortcutRegistered = true
+  console.log('[main] global voice shortcut registered:', GLOBAL_VOICE_SHORTCUT)
+}
+
+function unregisterVoiceShortcut(): void {
+  if (!voiceShortcutRegistered) return
+  globalShortcut.unregister(GLOBAL_VOICE_SHORTCUT)
+  voiceShortcutRegistered = false
+  console.log('[main] global voice shortcut unregistered')
+}
+
+function createVoiceWindow(): void {
+  if (voiceWin) return
+  voiceWin = new BrowserWindow({
+    width: 1,
+    height: 1,
+    show: false,
+    frame: false,
+    skipTaskbar: true,
+    focusable: false,
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+
+  voiceWin.on('closed', () => {
+    voiceWin = null
+  })
+
+  const voiceUrl = devServerUrl
+    ? `${devServerUrl}?mode=voice`
+    : `file://${path.join(RENDERER_DIST, 'index.html')}?mode=voice`
+
+  void voiceWin.loadURL(voiceUrl)
+}
+
+function closeVoiceWindow(): void {
+  voiceWin?.close()
+  voiceWin = null
+}
+
+function createRecordingPopupWindow(): void {
+  const cursorPoint = screen.getCursorScreenPoint()
+  const display = screen.getDisplayNearestPoint(cursorPoint)
+  const workArea = display.workArea
+
+  const width = 280
+  const height = 64
+
+  let x = cursorPoint.x - Math.floor(width / 2)
+  let y = cursorPoint.y - 90
+
+  x = Math.max(workArea.x, Math.min(x, workArea.x + workArea.width - width))
+  y = Math.max(workArea.y, Math.min(y, workArea.y + workArea.height - height))
+
+  if (recordingPopupWin) {
+    recordingPopupWin.close()
+    recordingPopupWin = null
+  }
+
+  recordingPopupWin = new BrowserWindow({
+    width,
+    height,
+    x,
+    y,
+    title: '语音输入中',
+    show: false,
+    frame: false,
+    resizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    focusable: false,
+    backgroundColor: '#ffffff',
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+
+  recordingPopupWin.on('ready-to-show', () => {
+    recordingPopupWin?.showInactive()
+  })
+
+  recordingPopupWin.on('closed', () => {
+    recordingPopupWin = null
+  })
+
+  const popupUrl = devServerUrl
+    ? `${devServerUrl}?mode=recording-popup`
+    : `file://${path.join(RENDERER_DIST, 'index.html')}?mode=recording-popup`
+
+  void recordingPopupWin.loadURL(popupUrl)
+}
+
+function closeRecordingPopupWindow(): void {
+  recordingPopupWin?.close()
+  recordingPopupWin = null
+}
+
+async function handleGlobalVoiceToggle(): Promise<void> {
+  const settings = store.get('settings')
+  if (!settings.voiceInputEnabled) return
+
+  // When the main window is focused, let the renderer toggle recording locally.
+  if (isMainWindowFocused()) {
+    win?.webContents.send('toggle-voice-recording')
+    return
+  }
+
+  if (globalVoiceRecording) {
+    globalVoiceRecording = false
+    voiceWin?.webContents.send('stop-global-recording')
+    return
+  }
+
+  // Remember the foreground window so we can paste back into it later.
+  lastForegroundHwnd = GetForegroundWindow()
+  if (!lastForegroundHwnd) return
+
+  globalVoiceRecording = true
+  if (!voiceWin) {
+    createVoiceWindow()
+  }
+  createRecordingPopupWindow()
+  // Give the hidden voice window a moment to be ready, then start recording.
+  setTimeout(() => {
+    voiceWin?.webContents.send('start-global-recording')
+  }, 150)
+}
+
+async function simulatePasteToForeground(text: string): Promise<void> {
+  if (!text) return
+  if (!lastForegroundHwnd) {
+    console.log('[main] no foreground window recorded, cannot paste')
+    return
+  }
+
+  const originalClipboard = clipboard.readText()
+  clipboard.writeText(text)
+  await new Promise((resolve) => setTimeout(resolve, 50))
+
+  SetForegroundWindow(lastForegroundHwnd)
+  await new Promise((resolve) => setTimeout(resolve, 80))
+
+  keybd_event(VK_CONTROL, 0, 0, 0n)
+  await new Promise((resolve) => setTimeout(resolve, 15))
+  keybd_event(VK_V, 0, 0, 0n)
+  await new Promise((resolve) => setTimeout(resolve, 15))
+  keybd_event(VK_V, 0, KEYEVENTF_KEYUP, 0n)
+  await new Promise((resolve) => setTimeout(resolve, 15))
+  keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0n)
+
+  setTimeout(() => {
+    clipboard.writeText(originalClipboard)
+  }, 300)
+}
+
 async function simulateCopy(): Promise<void> {
   try {
     const hwnd = GetForegroundWindow()
@@ -422,10 +631,16 @@ function registerGlobalShortcut(): void {
       void handleCrossSelection()
     })
   }
+
+  const settings = store.get('settings')
+  if (settings.voiceInputEnabled) {
+    registerVoiceShortcut()
+  }
 }
 
 function unregisterGlobalShortcut(): void {
   globalShortcut.unregisterAll()
+  voiceShortcutRegistered = false
 }
 
 // IPC handlers
@@ -456,6 +671,18 @@ ipcMain.handle('set-settings', (_event, settings) => {
     if (shortcutsChanged) {
       unregisterGlobalShortcut()
       registerGlobalShortcut()
+    }
+
+    // Register/unregister global voice hotkey when voice input setting changes
+    if (settings.voiceInputEnabled !== prev.voiceInputEnabled) {
+      if (settings.voiceInputEnabled) {
+        registerVoiceShortcut()
+        if (!voiceWin) createVoiceWindow()
+      } else {
+        unregisterVoiceShortcut()
+        closeVoiceWindow()
+        closeRecordingPopupWindow()
+      }
     }
 
     return true
@@ -589,6 +816,47 @@ ipcMain.handle('delete-history-item', (_event, id: string) => {
   }
 })
 
+ipcMain.handle('get-speech-optimizations', () => {
+  return store.get('speechOptimizations')
+})
+
+ipcMain.handle('add-speech-optimization', (_event, record: SpeechOptimizationRecord) => {
+  try {
+    const speechOptimizations = store.get('speechOptimizations')
+    const newSpeechOptimizations = [record, ...speechOptimizations.filter((item) => item.id !== record.id)].slice(
+      0,
+      MAX_SPEECH_OPTIMIZATION_COUNT
+    )
+    store.set('speechOptimizations', newSpeechOptimizations)
+    return true
+  } catch (error) {
+    console.error('[main] failed to add speech optimization:', error)
+    throw error
+  }
+})
+
+ipcMain.handle('clear-speech-optimizations', () => {
+  try {
+    store.set('speechOptimizations', [])
+    return true
+  } catch (error) {
+    console.error('[main] failed to clear speech optimizations:', error)
+    throw error
+  }
+})
+
+ipcMain.handle('delete-speech-optimization-item', (_event, id: string) => {
+  try {
+    const speechOptimizations = store.get('speechOptimizations')
+    const newSpeechOptimizations = speechOptimizations.filter((item) => item.id !== id)
+    store.set('speechOptimizations', newSpeechOptimizations)
+    return true
+  } catch (error) {
+    console.error('[main] failed to delete speech optimization item:', error)
+    throw error
+  }
+})
+
 ipcMain.handle('get-favorites', () => {
   return store.get('favorites')
 })
@@ -646,6 +914,13 @@ ipcMain.handle('window-set-always-on-top', (_event, alwaysOnTop: boolean) => {
 ipcMain.handle('close-popup', () => {
   popupWin?.close()
   popupWin = null
+})
+
+ipcMain.on('global-voice-result', async (_event, text: string) => {
+  console.log('[main] global voice result:', text.slice(0, 50))
+  closeRecordingPopupWindow()
+  globalVoiceRecording = false
+  await simulatePasteToForeground(text)
 })
 
 const MAX_TEXT_FILE_SIZE = 2 * 1024 * 1024 // 2MB
@@ -738,16 +1013,82 @@ ipcMain.handle('ocr-image', async (_event, imageBase64: string) => {
   }
 })
 
+// Speech-to-text from base64-encoded WAV audio
+ipcMain.handle('transcribe-audio', async (_event, request: TranscribeAudioRequest) => {
+  try {
+    const settings = store.get('settings')
+    const provider = settings.voiceInputProvider || 'local'
+    let rawText = ''
+
+    if (provider === 'zhipu') {
+      console.log('[main] starting Zhipu ASR transcription...')
+      const apiKey = settings.providers?.zhipu?.apiKey
+      rawText = await transcribeWithZhipu(request.audioBase64, apiKey || '')
+      console.log('[main] Zhipu ASR result:', rawText.slice(0, 50))
+    } else {
+      console.log('[main] starting whisper.cpp transcription...')
+      const result = await transcribeAudio(request)
+      rawText = result.text
+      console.log('[main] transcription result:', rawText.slice(0, 50))
+    }
+
+    if (!isMeaningfulSpeechText(rawText)) {
+      console.log('[main] no meaningful speech detected, ignoring')
+      return { text: '' }
+    }
+
+    if (settings.voiceInputOptimize && rawText.trim()) {
+      console.log('[main] optimizing spoken text with DeepSeek...')
+      const deepseekConfig = settings.providers?.deepseek
+      if (!deepseekConfig?.apiKey?.trim()) {
+        throw new Error('未配置 DeepSeek API Key，无法启用口语内容优化')
+      }
+      const optimizedText = await optimizeSpeech(rawText, deepseekConfig)
+      console.log('[main] optimized text:', optimizedText.slice(0, 50))
+
+      if (!isMeaningfulSpeechText(optimizedText)) {
+        console.log('[main] optimized text contains no meaningful speech, ignoring')
+        return { text: '' }
+      }
+
+      // Save optimization record for later review
+      const record: SpeechOptimizationRecord = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        rawText,
+        optimizedText,
+        timestamp: Date.now(),
+      }
+      const existing = store.get('speechOptimizations')
+      store.set(
+        'speechOptimizations',
+        [record, ...existing.filter((item) => item.id !== record.id)].slice(0, MAX_SPEECH_OPTIMIZATION_COUNT)
+      )
+
+      return { text: optimizedText }
+    }
+
+    return { text: rawText }
+  } catch (error) {
+    console.error('[main] transcription error:', error)
+    throw error
+  }
+})
+
 app.whenReady().then(async () => {
   console.log(`[main] app ready, version ${appVersion}`)
   createWindow()
   createTray()
   registerGlobalShortcut()
+
+  const settings = store.get('settings')
+  if (settings.voiceInputEnabled) {
+    createVoiceWindow()
+  }
+
   // Pre-init OCR worker in background so first use is fast
   void initOcrWorker()
 
   // Start clipboard monitor if enabled
-  const settings = store.get('settings')
   if (settings.clipboardMonitor) {
     startClipboardMonitor()
   }
@@ -767,14 +1108,13 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => {
-  globalShortcut.unregisterAll()
-  tray?.destroy()
-})
-
 app.on('before-quit', async () => {
   globalShortcut.unregisterAll()
+  voiceShortcutRegistered = false
+  closeVoiceWindow()
+  closeRecordingPopupWindow()
   tray?.destroy()
+  terminateActiveWhisperProcess()
   if (ocrWorker) {
     try {
       await ocrWorker.terminate()
@@ -787,4 +1127,5 @@ app.on('before-quit', async () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
+  voiceShortcutRegistered = false
 })

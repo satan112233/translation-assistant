@@ -1,5 +1,5 @@
-import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import type { FavoriteRecord, GlossaryEntry, HistoryRecord, MultiTranslateRequest, MultiTranslateResult, ReadTextFileResult, SaveTextFileRequest, SaveTextFileResult, TranslateRequest, TranslationResult } from '../shared/types'
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
+import type { FavoriteRecord, GlossaryEntry, HistoryRecord, MultiTranslateRequest, MultiTranslateResult, ReadTextFileResult, SaveTextFileRequest, SaveTextFileResult, SpeechOptimizationRecord, TranscribeAudioRequest, TranscribeAudioResult, TranslateRequest, TranslationResult } from '../shared/types'
 
 export interface ElectronAPI {
   getSettings: () => Promise<unknown>
@@ -7,6 +7,7 @@ export interface ElectronAPI {
   translate: (request: TranslateRequest) => Promise<TranslationResult>
   translateMulti: (request: MultiTranslateRequest) => Promise<MultiTranslateResult>
   ocrImage: (imageBase64: string) => Promise<string>
+  transcribeAudio: (request: TranscribeAudioRequest) => Promise<TranscribeAudioResult>
   getFilePath: (file: File) => string
   readTextFile: (filePath: string) => Promise<ReadTextFileResult>
   saveTextFile: (request: SaveTextFileRequest) => Promise<SaveTextFileResult>
@@ -16,6 +17,10 @@ export interface ElectronAPI {
   addHistory: (record: HistoryRecord) => Promise<boolean>
   deleteHistoryItem: (id: string) => Promise<boolean>
   clearHistory: () => Promise<boolean>
+  getSpeechOptimizations: () => Promise<SpeechOptimizationRecord[]>
+  addSpeechOptimization: (record: SpeechOptimizationRecord) => Promise<boolean>
+  deleteSpeechOptimizationItem: (id: string) => Promise<boolean>
+  clearSpeechOptimizations: () => Promise<boolean>
   getFavorites: () => Promise<FavoriteRecord[]>
   addFavorite: (record: FavoriteRecord) => Promise<boolean>
   deleteFavorite: (id: string) => Promise<boolean>
@@ -24,6 +29,10 @@ export interface ElectronAPI {
   windowClose: () => Promise<void>
   windowSetAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void>
   closePopup: () => Promise<void>
+  onStartGlobalRecording: (callback: () => void) => () => void
+  onStopGlobalRecording: (callback: () => void) => () => void
+  sendGlobalVoiceResult: (text: string) => void
+  onToggleVoiceRecording: (callback: () => void) => () => void
 }
 
 const api: ElectronAPI = {
@@ -32,6 +41,7 @@ const api: ElectronAPI = {
   translate: (request) => ipcRenderer.invoke('translate', request),
   translateMulti: (request) => ipcRenderer.invoke('translate-multi', request),
   ocrImage: (imageBase64) => ipcRenderer.invoke('ocr-image', imageBase64),
+  transcribeAudio: (request) => ipcRenderer.invoke('transcribe-audio', request),
   getFilePath: (file) => webUtils.getPathForFile(file),
   readTextFile: (filePath) => ipcRenderer.invoke('read-text-file', filePath),
   saveTextFile: (request) => ipcRenderer.invoke('save-text-file', request),
@@ -41,6 +51,10 @@ const api: ElectronAPI = {
   addHistory: (record) => ipcRenderer.invoke('add-history', record),
   deleteHistoryItem: (id) => ipcRenderer.invoke('delete-history-item', id),
   clearHistory: () => ipcRenderer.invoke('clear-history'),
+  getSpeechOptimizations: () => ipcRenderer.invoke('get-speech-optimizations'),
+  addSpeechOptimization: (record) => ipcRenderer.invoke('add-speech-optimization', record),
+  deleteSpeechOptimizationItem: (id) => ipcRenderer.invoke('delete-speech-optimization-item', id),
+  clearSpeechOptimizations: () => ipcRenderer.invoke('clear-speech-optimizations'),
   getFavorites: () => ipcRenderer.invoke('get-favorites'),
   addFavorite: (record) => ipcRenderer.invoke('add-favorite', record),
   deleteFavorite: (id) => ipcRenderer.invoke('delete-favorite', id),
@@ -49,6 +63,22 @@ const api: ElectronAPI = {
   windowClose: () => ipcRenderer.invoke('window-close'),
   windowSetAlwaysOnTop: (alwaysOnTop) => ipcRenderer.invoke('window-set-always-on-top', alwaysOnTop),
   closePopup: () => ipcRenderer.invoke('close-popup'),
+  onStartGlobalRecording: (callback) => {
+    const wrapped = (_event: IpcRendererEvent) => callback()
+    ipcRenderer.on('start-global-recording', wrapped)
+    return () => ipcRenderer.removeListener('start-global-recording', wrapped)
+  },
+  onStopGlobalRecording: (callback) => {
+    const wrapped = (_event: IpcRendererEvent) => callback()
+    ipcRenderer.on('stop-global-recording', wrapped)
+    return () => ipcRenderer.removeListener('stop-global-recording', wrapped)
+  },
+  sendGlobalVoiceResult: (text) => ipcRenderer.send('global-voice-result', text),
+  onToggleVoiceRecording: (callback) => {
+    const wrapped = (_event: IpcRendererEvent) => callback()
+    ipcRenderer.on('toggle-voice-recording', wrapped)
+    return () => ipcRenderer.removeListener('toggle-voice-recording', wrapped)
+  },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

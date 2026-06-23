@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import type { AppSettings, FavoriteRecord, GlossaryEntry, HistoryRecord, LanguageCode, ProviderTranslationResult, TranslationResult } from '../../shared/types'
-import { MAX_HISTORY_COUNT } from '../../shared/types'
+import type { AppSettings, FavoriteRecord, GlossaryEntry, HistoryRecord, LanguageCode, ProviderTranslationResult, SpeechOptimizationRecord, TranslationResult } from '../../shared/types'
+import { MAX_HISTORY_COUNT, MAX_SPEECH_OPTIMIZATION_COUNT } from '../../shared/types'
 import { DEFAULT_PROVIDER_CONFIGS, PROVIDER_LABELS } from '../../main/providers'
 
 interface TranslationState {
@@ -57,6 +57,35 @@ interface GlossaryState {
   updateGlossaryEntry: (id: string, entry: Partial<GlossaryEntry>) => Promise<void>
 }
 
+interface SpeechOptimizationState {
+  records: SpeechOptimizationRecord[]
+  isLoaded: boolean
+  loadRecords: () => Promise<void>
+  addRecord: (record: SpeechOptimizationRecord) => Promise<void>
+  deleteRecord: (id: string) => Promise<void>
+  clearRecords: () => Promise<void>
+}
+
+export type ActiveView = 'translate' | 'glossary' | 'favorites' | 'history' | 'speech-optimization' | 'settings'
+
+interface UIState {
+  activeView: ActiveView
+  setActiveView: (view: ActiveView) => void
+  sidebarCollapsed: boolean
+  toggleSidebarCollapsed: () => void
+}
+
+interface RecordingState {
+  isRecording: boolean
+  isTranscribing: boolean
+  recordingDuration: number
+  transcribedText: string | null
+  startRecording: (language: 'auto' | LanguageCode) => Promise<void>
+  stopRecording: () => void
+  toggleRecording: () => void
+  setTranscribedText: (text: string | null) => void
+}
+
 const DEFAULT_SHORTCUTS = {
   toggleWindow: 'CommandOrControl+Shift+T',
   crossSelection: 'CommandOrControl+Shift+C',
@@ -75,6 +104,11 @@ const defaultSettings: AppSettings = {
   glossary: [],
   popupPinned: false,
   autoCopyResult: false,
+  voiceInputEnabled: true,
+  voiceInputProvider: 'local',
+  voiceInputOptimize: true,
+  voiceInputLanguage: 'auto',
+  voiceInputShortcut: 'Control+Shift+V',
 }
 
 function getConfiguredProviders(settings: AppSettings): string[] {
@@ -107,6 +141,13 @@ function mergeWithDefaults(settings: Partial<AppSettings>): AppSettings {
     glossary: settings.glossary ?? defaultSettings.glossary,
     popupPinned: settings.popupPinned ?? defaultSettings.popupPinned,
     autoCopyResult: settings.autoCopyResult ?? defaultSettings.autoCopyResult,
+    voiceInputEnabled: settings.voiceInputEnabled ?? defaultSettings.voiceInputEnabled,
+    voiceInputProvider:
+      settings.voiceInputProvider ??
+      (mergedProviders.zhipu?.apiKey ? 'zhipu' : defaultSettings.voiceInputProvider),
+    voiceInputOptimize: settings.voiceInputOptimize ?? defaultSettings.voiceInputOptimize,
+    voiceInputLanguage: settings.voiceInputLanguage ?? defaultSettings.voiceInputLanguage,
+    voiceInputShortcut: settings.voiceInputShortcut ?? defaultSettings.voiceInputShortcut,
   }
 }
 
@@ -282,6 +323,233 @@ export const useGlossaryStore = create<GlossaryState>((set) => ({
   },
 }))
 
+export const useSpeechOptimizationStore = create<SpeechOptimizationState>((set) => ({
+  records: [],
+  isLoaded: false,
+  loadRecords: async () => {
+    try {
+      const raw = await window.electronAPI.getSpeechOptimizations()
+      set({ records: raw as SpeechOptimizationRecord[], isLoaded: true })
+    } catch (error) {
+      console.error('Failed to load speech optimization records:', error)
+      set({ records: [], isLoaded: true })
+    }
+  },
+  addRecord: async (record) => {
+    try {
+      await window.electronAPI.addSpeechOptimization(record)
+      set((state) => ({
+        records: [record, ...state.records.filter((item) => item.id !== record.id)].slice(
+          0,
+          MAX_SPEECH_OPTIMIZATION_COUNT
+        ),
+      }))
+    } catch (error) {
+      console.error('Failed to add speech optimization record:', error)
+    }
+  },
+  deleteRecord: async (id) => {
+    try {
+      await window.electronAPI.deleteSpeechOptimizationItem(id)
+      set((state) => ({
+        records: state.records.filter((item) => item.id !== id),
+      }))
+    } catch (error) {
+      console.error('Failed to delete speech optimization record:', error)
+    }
+  },
+  clearRecords: async () => {
+    try {
+      await window.electronAPI.clearSpeechOptimizations()
+      set({ records: [] })
+    } catch (error) {
+      console.error('Failed to clear speech optimization records:', error)
+    }
+  },
+}))
+
+// Audio helpers for voice recording
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  const len = bytes.byteLength
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary)
+}
+
+function encodeWav(samples: Float32Array, sampleRate: number): ArrayBuffer {
+  const bytesPerSample = 2
+  const blockAlign = 1 * bytesPerSample
+  const dataSize = samples.length * bytesPerSample
+
+  const buffer = new ArrayBuffer(44 + dataSize)
+  const view = new DataView(buffer)
+
+  const writeString = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i))
+    }
+  }
+
+  writeString(0, 'RIFF')
+  view.setUint32(4, 36 + dataSize, true)
+  writeString(8, 'WAVE')
+  writeString(12, 'fmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true) // PCM
+  view.setUint16(22, 1, true) // Mono
+  view.setUint32(24, sampleRate, true)
+  view.setUint32(28, sampleRate * blockAlign, true)
+  view.setUint16(32, blockAlign, true)
+  view.setUint16(34, 16, true) // 16-bit
+  writeString(36, 'data')
+  view.setUint32(40, dataSize, true)
+
+  const pcm = new Int16Array(buffer, 44, samples.length)
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]))
+    pcm[i] = s < 0 ? s * 0x8000 : s * 0x7fff
+  }
+
+  return buffer
+}
+
+async function convertBlobToWavBase64(blob: Blob): Promise<string> {
+  const arrayBuffer = await blob.arrayBuffer()
+  const audioContext = new AudioContext()
+  const decoded = await audioContext.decodeAudioData(arrayBuffer)
+  await audioContext.close()
+
+  const targetSampleRate = 16000
+  const offlineContext = new OfflineAudioContext(1, Math.ceil(decoded.duration * targetSampleRate), targetSampleRate)
+  const source = offlineContext.createBufferSource()
+  source.buffer = decoded
+  source.connect(offlineContext.destination)
+  source.start()
+
+  const rendered = await offlineContext.startRendering()
+  const monoSamples = rendered.getChannelData(0)
+  const wavBuffer = encodeWav(monoSamples, targetSampleRate)
+  return arrayBufferToBase64(wavBuffer)
+}
+
+const MAX_RECORDING_SECONDS = 60
+
+let mediaRecorderRef: MediaRecorder | null = null
+let audioChunksRef: Blob[] = []
+let streamRef: MediaStream | null = null
+let timerRef: ReturnType<typeof setInterval> | null = null
+let maxDurationTimerRef: ReturnType<typeof setTimeout> | null = null
+
+export const useRecordingStore = create<RecordingState>((set) => ({
+  isRecording: false,
+  isTranscribing: false,
+  recordingDuration: 0,
+  transcribedText: null,
+
+  setTranscribedText: (text) => set({ transcribedText: text }),
+
+  stopRecording: () => {
+    if (mediaRecorderRef?.state === 'recording') {
+      mediaRecorderRef.stop()
+    }
+    if (streamRef) {
+      streamRef.getTracks().forEach((track) => track.stop())
+      streamRef = null
+    }
+    if (timerRef) {
+      clearInterval(timerRef)
+      timerRef = null
+    }
+    if (maxDurationTimerRef) {
+      clearTimeout(maxDurationTimerRef)
+      maxDurationTimerRef = null
+    }
+    set({ isRecording: false, recordingDuration: 0 })
+  },
+
+  startRecording: async (language) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef = stream
+
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : ''
+
+      const mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream)
+
+      mediaRecorderRef = mediaRecorder
+      audioChunksRef = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = async () => {
+        useRecordingStore.getState().stopRecording()
+        if (audioChunksRef.length === 0) {
+          alert('未录制到音频')
+          return
+        }
+
+        const audioBlob = new Blob(audioChunksRef, { type: mediaRecorder.mimeType || 'audio/webm' })
+        set({ isTranscribing: true })
+        try {
+          const audioBase64 = await convertBlobToWavBase64(audioBlob)
+          const result = await window.electronAPI.transcribeAudio({ audioBase64, language })
+          const text = result.text?.trim()
+          if (!text) {
+            // No meaningful speech detected; silently ignore so we don't disturb the user
+            return
+          }
+          useRecordingStore.getState().setTranscribedText(text)
+        } catch (err) {
+          console.error('语音转文字失败:', err)
+          alert(err instanceof Error ? err.message : '语音转文字失败')
+        } finally {
+          set({ isTranscribing: false })
+        }
+      }
+
+      mediaRecorder.start()
+      set({ isRecording: true, recordingDuration: 0 })
+
+      timerRef = setInterval(() => {
+        set((state) => ({ recordingDuration: state.recordingDuration + 1 }))
+      }, 1000)
+
+      maxDurationTimerRef = setTimeout(() => {
+        if (mediaRecorderRef?.state === 'recording') {
+          mediaRecorderRef.stop()
+        }
+      }, MAX_RECORDING_SECONDS * 1000)
+    } catch (err) {
+      console.error('无法访问麦克风:', err)
+      alert('无法访问麦克风，请检查权限设置')
+    }
+  },
+
+  toggleRecording: () => {
+    const { isRecording, isTranscribing, startRecording } = useRecordingStore.getState()
+    if (isTranscribing) return
+    if (isRecording) {
+      useRecordingStore.getState().stopRecording()
+    } else {
+      const settings = useSettingsStore.getState().settings
+      void startRecording(settings.voiceInputLanguage)
+    }
+  },
+}))
+
 export const useTranslationStore = create<TranslationState>((set, get) => ({
   inputText: '',
   sourceLang: 'auto',
@@ -426,4 +694,11 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
     })
   },
   resetSkipFlag: () => set({ shouldSkipNextAutoTranslate: false }),
+}))
+
+export const useUIStore = create<UIState>((set) => ({
+  activeView: 'translate',
+  setActiveView: (view) => set({ activeView: view }),
+  sidebarCollapsed: false,
+  toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
 }))
