@@ -32,7 +32,8 @@
       "Bash(ps *)",
       "Bash(wmic process *)",
       "Bash(cmd.exe /c \"wmic process where ProcessId=20372 get CommandLine /value\")",
-      "Bash(powershell.exe -Command \"Get-CimInstance Win32_Process -Filter \\\\\"ProcessId=20372\\\\\" | Select-Object CommandLine | Format-List\")"
+      "Bash(powershell.exe -Command \"Get-CimInstance Win32_Process -Filter \\\\\"ProcessId=20372\\\\\" | Select-Object CommandLine | Format-List\")",
+      "Bash(cmd *)"
     ]
   }
 }

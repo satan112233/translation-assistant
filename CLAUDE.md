@@ -70,7 +70,7 @@ Settings are stored with `electron-store` in the main process. On first load, th
 ### Voice Input (whisper.cpp / Zhipu ASR / DeepSeek optimization)
 
 - The renderer's `VoiceRecorder` component records microphone audio via `MediaRecorder`, converts it to a 16kHz mono WAV using the Web Audio API, and sends it to the main process through `transcribe-audio`.
-- Pressing the configured **voice input shortcut** (default `AltRight`) toggles recording in the translation panel. A floating `RecordingPanel` appears at the bottom-center showing a cancel button, sound-wave animation, and confirm button; pressing the shortcut again or clicking either button stops recording.
+- Pressing the configured **voice input shortcut** (default `Ctrl+Alt+V`) toggles recording in the translation panel. A floating `RecordingPanel` appears at the bottom-center showing a cancel button, sound-wave animation, and confirm button; pressing the shortcut again or clicking either button stops recording.
 - `settings.voiceInputProvider` selects the recognition backend:
   - `'zhipu'` (default when Zhipu API key is configured): sends audio to Zhipu AI's `glm-asr-2512` ASR endpoint.
   - `'local'`: the main process writes the WAV to a temp file, calls `whisper-cli.exe` from `resources/whisper/` (packaged via `extraResources`), and returns the transcribed text.
