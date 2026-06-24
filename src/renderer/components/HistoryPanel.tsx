@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { History, Trash2, Clock } from 'lucide-react'
+import { History, Trash2, Clock, X } from 'lucide-react'
 import { useHistoryStore, useTranslationStore, useUIStore } from '../stores'
 import { ConfirmDialog } from './ConfirmDialog'
 import { MAX_HISTORY_COUNT } from '../../shared/types'
 import type { HistoryRecord } from '../../shared/types'
 
-export function HistoryPanel() {
+export function HistoryPanel({ onClose }: { onClose?: () => void }) {
   const { history, isLoaded, clearHistory, deleteHistoryItem } = useHistoryStore()
   const { loadFromHistory } = useTranslationStore()
   const { setActiveView } = useUIStore()
@@ -14,6 +14,7 @@ export function HistoryPanel() {
   const handleRecordClick = (record: HistoryRecord) => {
     loadFromHistory(record)
     setActiveView('translate')
+    onClose?.()
   }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -42,6 +43,15 @@ export function HistoryPanel() {
               title="清空历史"
             >
               <Trash2 size={16} />
+            </button>
+          )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              title="关闭"
+            >
+              <X size={16} />
             </button>
           )}
         </div>

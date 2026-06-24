@@ -1,9 +1,10 @@
-import { Minus, X, Pin, PinOff, Sun, Moon } from 'lucide-react'
+import { Minus, X, Pin, PinOff, Sun, Moon, History, Star, Mic } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useSettingsStore } from '../stores'
+import { useSettingsStore, useUIStore } from '../stores'
 
 export function TitleBar() {
   const { settings, saveSettings } = useSettingsStore()
+  const { openDrawer, setOpenDrawer } = useUIStore()
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(settings.alwaysOnTop)
 
   useEffect(() => {
@@ -37,6 +38,42 @@ export function TitleBar() {
         <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">({__APP_VERSION__})</span>
       </div>
       <div className="flex items-center">
+        <button
+          onClick={() => setOpenDrawer('history')}
+          className={`h-10 w-10 flex items-center justify-center transition-colors ${
+            openDrawer === 'history'
+              ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+          title="翻译历史"
+        >
+          <History size={15} />
+        </button>
+        <button
+          onClick={() => setOpenDrawer('favorites')}
+          className={`h-10 w-10 flex items-center justify-center transition-colors ${
+            openDrawer === 'favorites'
+              ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+          title="收藏夹"
+        >
+          <Star size={15} />
+        </button>
+        <button
+          onClick={() => setOpenDrawer('speech-optimization')}
+          className={`h-10 w-10 flex items-center justify-center transition-colors ${
+            openDrawer === 'speech-optimization'
+              ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+          title="语音优化记录"
+        >
+          <Mic size={15} />
+        </button>
+
+        <div className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
+
         <button
           onClick={toggleTheme}
           className="h-10 w-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"

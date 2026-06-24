@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Mic, Trash2, Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { Mic, Trash2, Clock, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useSpeechOptimizationStore, useTranslationStore, useUIStore } from '../stores'
 import { ConfirmDialog } from './ConfirmDialog'
 import { MAX_SPEECH_OPTIMIZATION_COUNT } from '../../shared/types'
 import type { SpeechOptimizationRecord } from '../../shared/types'
 
-export function SpeechOptimizationPanel() {
+export function SpeechOptimizationPanel({ onClose }: { onClose?: () => void }) {
   const { records, isLoaded, clearRecords, deleteRecord } = useSpeechOptimizationStore()
   const { setInputText } = useTranslationStore()
   const { setActiveView } = useUIStore()
@@ -19,6 +19,7 @@ export function SpeechOptimizationPanel() {
   const handleRecordClick = (record: SpeechOptimizationRecord) => {
     setInputText(record.optimizedText)
     setActiveView('translate')
+    onClose?.()
   }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -62,6 +63,15 @@ export function SpeechOptimizationPanel() {
               title="清空记录"
             >
               <Trash2 size={16} />
+            </button>
+          )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              title="关闭"
+            >
+              <X size={16} />
             </button>
           )}
         </div>

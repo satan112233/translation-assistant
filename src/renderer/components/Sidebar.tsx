@@ -1,4 +1,4 @@
-import { Languages, BookOpen, Star, History, Settings, ChevronLeft, ChevronRight, Mic, SpellCheck } from 'lucide-react'
+import { Languages, BookOpen, Settings, ChevronLeft, ChevronRight, SpellCheck } from 'lucide-react'
 import { useUIStore, type ActiveView } from '../stores'
 
 interface NavItem {
@@ -11,10 +11,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'translate', label: '翻译', icon: Languages },
   { id: 'glossary', label: '术语库', icon: BookOpen },
   { id: 'voice-dictionary', label: '语音词典', icon: SpellCheck },
-  { id: 'favorites', label: '收藏夹', icon: Star },
-  { id: 'history', label: '翻译历史', icon: History },
-  { id: 'speech-optimization', label: '语音优化记录', icon: Mic },
-  { id: 'settings', label: '设置', icon: Settings },
 ]
 
 export function Sidebar() {
@@ -57,27 +53,57 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 py-3 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
-          const isActive = activeView === id
-          return (
-            <button
-              key={id}
-              onClick={() => setActiveView(id)}
-              title={label}
-              className={`
-                w-full flex items-center transition-colors
-                ${sidebarCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-2.5'}
-                ${isActive
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600 dark:border-blue-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-700 dark:hover:text-gray-200'}
-              `}
-            >
-              <Icon size={18} />
-              {!sidebarCollapsed && <span className="text-sm">{label}</span>}
-            </button>
-          )
-        })}
+        {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+          <NavButton
+            key={id}
+            id={id}
+            label={label}
+            Icon={Icon}
+            isActive={activeView === id}
+            collapsed={sidebarCollapsed}
+            onClick={() => setActiveView(id)}
+          />
+        ))}
       </nav>
+
+      <div className="py-3 border-t border-gray-200 dark:border-gray-700">
+        <NavButton
+          id="settings"
+          label="设置"
+          Icon={Settings}
+          isActive={activeView === 'settings'}
+          collapsed={sidebarCollapsed}
+          onClick={() => setActiveView('settings')}
+        />
+      </div>
     </div>
+  )
+}
+
+interface NavButtonProps {
+  id: ActiveView
+  label: string
+  Icon: React.ElementType
+  isActive: boolean
+  collapsed: boolean
+  onClick: () => void
+}
+
+function NavButton({ label, Icon, isActive, collapsed, onClick }: NavButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      className={`
+        w-full flex items-center transition-colors
+        ${collapsed ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-2.5'}
+        ${isActive
+          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600 dark:border-blue-400'
+          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-700 dark:hover:text-gray-200'}
+      `}
+    >
+      <Icon size={18} />
+      {!collapsed && <span className="text-sm">{label}</span>}
+    </button>
   )
 }

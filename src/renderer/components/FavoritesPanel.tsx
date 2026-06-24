@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Star, Trash2, Search, Download } from 'lucide-react'
+import { Star, Trash2, Search, Download, X } from 'lucide-react'
 import { useFavoritesStore, useTranslationStore, useUIStore } from '../stores'
 import type { FavoriteRecord } from '../../shared/types'
 
-export function FavoritesPanel() {
+export function FavoritesPanel({ onClose }: { onClose?: () => void }) {
   const { favorites, isLoaded, deleteFavorite, updateFavoriteNote } = useFavoritesStore()
   const { loadFromHistory } = useTranslationStore()
   const { setActiveView } = useUIStore()
@@ -24,6 +24,7 @@ export function FavoritesPanel() {
   const handleLoad = (record: FavoriteRecord) => {
     loadFromHistory(record)
     setActiveView('translate')
+    onClose?.()
   }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -73,6 +74,15 @@ export function FavoritesPanel() {
               title="导出收藏"
             >
               <Download size={16} />
+            </button>
+          )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              title="关闭"
+            >
+              <X size={16} />
             </button>
           )}
         </div>

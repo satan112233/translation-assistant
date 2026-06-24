@@ -76,13 +76,18 @@ interface SpeechOptimizationState {
   clearRecords: () => Promise<void>
 }
 
-export type ActiveView = 'translate' | 'glossary' | 'voice-dictionary' | 'favorites' | 'history' | 'speech-optimization' | 'settings'
+export type ActiveView = 'translate' | 'glossary' | 'voice-dictionary' | 'settings'
+
+/** Records-style views surfaced from the title-bar toolbar in a slide-over drawer. */
+export type DrawerView = 'history' | 'favorites' | 'speech-optimization'
 
 interface UIState {
   activeView: ActiveView
   setActiveView: (view: ActiveView) => void
   sidebarCollapsed: boolean
   toggleSidebarCollapsed: () => void
+  openDrawer: DrawerView | null
+  setOpenDrawer: (drawer: DrawerView | null) => void
 }
 
 interface RecordingState {
@@ -856,4 +861,6 @@ export const useUIStore = create<UIState>((set) => ({
   setActiveView: (view) => set({ activeView: view }),
   sidebarCollapsed: false,
   toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+  openDrawer: null,
+  setOpenDrawer: (drawer) => set({ openDrawer: drawer }),
 }))

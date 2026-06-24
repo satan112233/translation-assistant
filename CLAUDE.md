@@ -137,7 +137,8 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 - Customizable global shortcuts: `SettingsModal` exposes inputs for the two global shortcuts. Values are converted to Electron accelerator strings and persisted in `settings.shortcuts`; the main process re-registers shortcuts whenever they change.
 - Multi-model comparison translation: when `settings.comparisonMode` is enabled and at least two providers have API keys, the store calls `translate-multi`. The main process uses `Promise.allSettled()` so a failure in one provider does not affect the others.
 - Terminology glossary: users can add terms and their preferred translations in `GlossaryPanel`. The main process injects the glossary into the translation prompt so the model follows the specified terms.
-- Left sidebar navigation: `MainLayout` renders `Sidebar` plus the active content view (`TranslationPanel`, `GlossaryPanel`, `VoiceDictionaryPanel`, `FavoritesPanel`, `HistoryPanel`, `SpeechOptimizationPanel`, or `SettingsPanel`). `useUIStore` tracks `activeView` and `sidebarCollapsed`.
+- Left sidebar navigation: `MainLayout` renders `Sidebar` plus the active content view. The sidebar holds only the "destination" views — `TranslationPanel`, `GlossaryPanel`, `VoiceDictionaryPanel` — with `SettingsPanel` pinned to the bottom (separated by a top border). `useUIStore.activeView` is typed `'translate' | 'glossary' | 'voice-dictionary' | 'settings'`.
+- Records toolbar + drawer: the three review-only "records" views — translation history, favorites, and speech-optimization records — are NOT in the sidebar. They are opened from icon buttons in the `TitleBar` (right side, before the theme toggle) and rendered in a right-side slide-over `Drawer` that overlays the workspace. `useUIStore.openDrawer` (type `DrawerView = 'history' | 'favorites' | 'speech-optimization' | null`) controls it; `Drawer` handles slide in/out animation, backdrop-click and Esc to close. `HistoryPanel` / `FavoritesPanel` / `SpeechOptimizationPanel` take an optional `onClose` prop (renders a close button in their header and closes the drawer after an item is picked).
 - Sidebar collapse: `Sidebar` can be collapsed to icon-only mode via the toggle button in its header. The collapsed state is stored in `useUIStore` (not persisted to disk).
 - Transcription errors (e.g., ASR provider failures or microphone permission issues) are surfaced through `useRecordingStore.transcriptionError` and rendered in `ErrorDialog` from `MainLayout`. The dialog shows the error message and a copy button so users can easily share the raw error text.
 
@@ -161,6 +162,7 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 - Settings UI: `src/renderer/components/SettingsModal.tsx`
 - Translation UI: `src/renderer/components/TranslationPanel.tsx`
 - Sidebar / navigation: `src/renderer/components/Sidebar.tsx`
+- Records drawer (history / favorites / speech-optimization slide-over): `src/renderer/components/Drawer.tsx`
 - Main layout / view switcher: `src/renderer/components/MainLayout.tsx`
 - Shortcut input component: `src/renderer/components/ShortcutInput.tsx`
 - Confirm dialog: `src/renderer/components/ConfirmDialog.tsx`
