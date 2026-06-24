@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowRightLeft, Copy, Check, Languages, Volume2, Square, Star, FileDown } from 'lucide-react'
 import { useTranslationStore, useSettingsStore, useHistoryStore, useFavoritesStore, useRecordingStore } from '../stores'
 import { LanguageSelector } from './LanguageSelector'
+import { ErrorDialog } from './ErrorDialog'
 import { VoiceRecorder } from './VoiceRecorder'
 import { PROVIDER_LABELS } from '../../main/providers'
 import type { LanguageCode, ProviderTranslationResult, TranslationResult } from '../../shared/types'
@@ -35,6 +36,7 @@ export function TranslationPanel() {
   const { transcribedText, setTranscribedText } = useRecordingStore()
   const [isOcrProcessing, setIsOcrProcessing] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [ocrError, setOcrError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const translateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastRequestRef = useRef({ inputText, sourceLang, targetLang })
@@ -173,7 +175,7 @@ export function TranslationPanel() {
       // Auto-translate will be triggered by the useEffect watching inputText
     } catch (err) {
       console.error('OCR paste failed:', err)
-      alert(err instanceof Error ? err.message : '图片识别失败')
+      setOcrError(err instanceof Error ? err.message : '图片识别失败')
     } finally {
       setIsOcrProcessing(false)
     }
@@ -319,6 +321,13 @@ export function TranslationPanel() {
           </div>
         </div>
       </div>
+
+      <ErrorDialog
+        isOpen={!!ocrError}
+        title="图片识别失败"
+        message={ocrError || ''}
+        onClose={() => setOcrError(null)}
+      />
     </div>
   )
 }
