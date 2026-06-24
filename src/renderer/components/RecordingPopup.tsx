@@ -46,12 +46,15 @@ export function RecordingPopup() {
     window.electronAPI.cancelGlobalVoice()
   }
 
+  const modeLabel =
+    state.mode === 'edit' ? '语音编辑' : state.mode === 'translate' ? '语音直译' : '语音输入'
+
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-gray-900 overflow-hidden">
       <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 app-drag-region">
         <div className="flex items-center gap-2">
           <Mic size={14} className="text-blue-500" />
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-300">语音输入</span>
+          <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{modeLabel}</span>
         </div>
         <button
           onClick={handleCancel}
@@ -63,6 +66,11 @@ export function RecordingPopup() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-4">
+        {state.mode === 'edit' && state.editPreview && (
+          <div className="w-full mb-3 px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded truncate" title={state.editPreview}>
+            编辑：{state.editPreview}
+          </div>
+        )}
         {!hasState ? (
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />

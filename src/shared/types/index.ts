@@ -114,6 +114,8 @@ export interface RecordingPopupState {
   isRecording: boolean
   isTranscribing: boolean
   recordingDuration: number
+  mode?: 'transcribe' | 'edit' | 'translate'
+  editPreview?: string
 }
 
 export const MAX_SPEECH_OPTIMIZATION_COUNT = 20

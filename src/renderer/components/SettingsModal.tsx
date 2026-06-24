@@ -388,17 +388,22 @@ export function SettingsPanel() {
                 </p>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">语音输入快捷键</label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    全局快捷键，在翻译助手或外部窗口均可使用
-                  </p>
+              <div className="p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg space-y-2.5">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">语音全局快捷键</label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-1">
+                  在翻译助手或任意外部窗口均可使用
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-600 dark:text-gray-300">语音输入（粘贴原文）</span>
+                  <span className="px-2 py-1 text-xs rounded border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 select-none">Ctrl+Alt+V</span>
                 </div>
-                <div
-                  className="px-3 py-1.5 text-sm rounded-md border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 select-none"
-                >
-                  Ctrl+Alt+V
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-600 dark:text-gray-300">语音编辑（改写选中文本）</span>
+                  <span className="px-2 py-1 text-xs rounded border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 select-none">Ctrl+Alt+E</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-600 dark:text-gray-300">语音直译（说一种语言出译文）</span>
+                  <span className="px-2 py-1 text-xs rounded border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 select-none">Ctrl+Alt+T</span>
                 </div>
               </div>
             </div>

@@ -78,7 +78,15 @@ The voice input system uses two renderer windows when invoked outside the main a
 - **`voiceWin`** (`mode=voice`) — a hidden 1×1 window that owns the actual recording state. It loads `VoiceRecordingPanel`, which starts `MediaRecorder`, converts audio to 16kHz mono WAV, and sends it to the main process through `transcribe-audio`.
 - **`recordingPopupWin`** (`mode=recording-popup`) — a visible mini popup that displays recording progress. It loads `RecordingPopup` and receives state updates from `voiceWin` via the main process.
 
-Pressing the configured **voice input shortcut** (default `Ctrl+Alt+V`) toggles recording:
+Three global voice hotkeys share the same recording pipeline (all gated by `settings.voiceInputEnabled`); the main process tracks which one is active via `globalVoiceMode: 'transcribe' | 'edit' | 'translate'` and branches only when handling the result. The voice window and renderer recording flow are mode-agnostic.
+
+- **`Ctrl+Alt+V`** (transcribe) toggles recording and pastes the recognized (optionally optimized) text.
+- **`Ctrl+Alt+E`** (edit, "Speak to Edit") first captures the foreground app's selected text via `captureSelectedText()` (simulated Ctrl+C, shared with cross-selection), then records a spoken command. The raw command (optimization is skipped for this mode) and the selected text are sent to DeepSeek via `src/main/utils/voice-editor.ts` (`editTextWithVoice`), and the rewritten text is pasted back over the selection. Commands like "改短一点 / 更正式 / 翻译成英文 / 修正语法" are supported.
+- **`Ctrl+Alt+T`** (translate) records speech, optimizes it, then auto-translates via `translateTextForVoice()` and pastes the translation. The target language is auto-detected (zh→en, en→zh, ja→zh) — no configuration. On translation failure it falls back to pasting the recognized text.
+
+The recognized-text result is delivered to the main process via `global-voice-result`, which branches on `globalVoiceMode`. The `RecordingPopup` shows a mode-specific title ("语音输入 / 语音编辑 / 语音直译") and an edit preview; the mode/preview are injected by the main process into the `recording-popup-state` payload (`RecordingPopupState.mode` / `.editPreview`). Edit and translate only fire when the main window is NOT focused (they target external selections/apps); plain transcribe also works inside the main window.
+
+For each voice hotkey:
 
 - Inside the main window, the local `RecordingPanel` appears at the bottom-center (cancel button, sound-wave animation, confirm button).
 - Outside the main window, `createRecordingPopupWindow()` creates a `RecordingPopup` near the cursor. The popup is styled like `PopupPanel` (title bar + content area) and shows recording / transcribing states.
@@ -166,6 +174,7 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 - Speech optimization panel: `src/renderer/components/SpeechOptimizationPanel.tsx`
 - Voice recorder: `src/renderer/components/VoiceRecorder.tsx`
 - Whisper service: `src/main/whisper-service.ts`
+- Voice editor (Speak to Edit): `src/main/utils/voice-editor.ts`
 - Zhipu ASR service: `src/main/zhipu-asr-service.ts`
 - iFlytek ASR service: `src/main/iflytek-asr-service.ts`
 - History panel: `src/renderer/components/HistoryPanel.tsx`

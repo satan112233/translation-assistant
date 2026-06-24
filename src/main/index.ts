@@ -9,6 +9,7 @@ import { terminateActiveWhisperProcess, transcribeAudio } from './whisper-servic
 import { transcribeWithZhipu } from './zhipu-asr-service'
 import { transcribeWithIflytek } from './iflytek-asr-service'
 import { optimizeSpeech } from './utils/speech-optimizer'
+import { editTextWithVoice } from './utils/voice-editor'
 import { MAX_HISTORY_COUNT, MAX_SPEECH_OPTIMIZATION_COUNT } from '../shared/types'
 import type { GlossaryEntry, MultiTranslateRequest, MultiTranslateResult, TranslateRequest, TranscribeAudioRequest, SpeechOptimizationRecord, VoiceDictionaryEntry } from '../shared/types'
 import { createWorker, type Worker } from 'tesseract.js'
@@ -40,6 +41,10 @@ const KEYEVENTF_KEYUP = 0x0002
 const HOTKEY_VKEYS = [VK_SHIFT, VK_CONTROL, VK_MENU, VK_C]
 
 const GLOBAL_VOICE_SHORTCUT = 'Ctrl+Alt+V'
+const GLOBAL_VOICE_EDIT_SHORTCUT = 'Ctrl+Alt+E'
+const GLOBAL_VOICE_TRANSLATE_SHORTCUT = 'Ctrl+Alt+T'
+
+type GlobalVoiceMode = 'transcribe' | 'edit' | 'translate'
 
 async function waitForHotkeyRelease(): Promise<void> {
   // Wait until all keys involved in the global shortcut are released.
@@ -181,6 +186,8 @@ let lastClipboardText = ''
 
 let voiceShortcutRegistered = false
 let globalVoiceRecording = false
+let globalVoiceMode: GlobalVoiceMode = 'transcribe'
+let pendingEditText = ''
 let lastForegroundHwnd: unknown = null
 let pendingRecordingState: { isRecording: boolean; isTranscribing: boolean; recordingDuration: number } | null = null
 
@@ -373,21 +380,29 @@ function isMainWindowFocused(): boolean {
 function registerVoiceShortcut(): void {
   if (voiceShortcutRegistered) return
   const success = globalShortcut.register(GLOBAL_VOICE_SHORTCUT, () => {
-    void handleGlobalVoiceToggle()
+    void handleGlobalVoiceToggle('transcribe')
   })
   if (!success) {
     console.error('[main] failed to register global voice shortcut:', GLOBAL_VOICE_SHORTCUT)
     return
   }
+  globalShortcut.register(GLOBAL_VOICE_EDIT_SHORTCUT, () => {
+    void handleGlobalVoiceToggle('edit')
+  })
+  globalShortcut.register(GLOBAL_VOICE_TRANSLATE_SHORTCUT, () => {
+    void handleGlobalVoiceToggle('translate')
+  })
   voiceShortcutRegistered = true
-  console.log('[main] global voice shortcut registered:', GLOBAL_VOICE_SHORTCUT)
+  console.log('[main] global voice shortcuts registered:', GLOBAL_VOICE_SHORTCUT, GLOBAL_VOICE_EDIT_SHORTCUT, GLOBAL_VOICE_TRANSLATE_SHORTCUT)
 }
 
 function unregisterVoiceShortcut(): void {
   if (!voiceShortcutRegistered) return
   globalShortcut.unregister(GLOBAL_VOICE_SHORTCUT)
+  globalShortcut.unregister(GLOBAL_VOICE_EDIT_SHORTCUT)
+  globalShortcut.unregister(GLOBAL_VOICE_TRANSLATE_SHORTCUT)
   voiceShortcutRegistered = false
-  console.log('[main] global voice shortcut unregistered')
+  console.log('[main] global voice shortcuts unregistered')
 }
 
 function createVoiceWindow(): void {
@@ -490,19 +505,24 @@ function closeRecordingPopupWindow(): void {
   recordingPopupWin = null
 }
 
-async function handleGlobalVoiceToggle(): Promise<void> {
+async function handleGlobalVoiceToggle(mode: GlobalVoiceMode): Promise<void> {
   const settings = store.get('settings')
   if (!settings.voiceInputEnabled) return
 
-  // When the main window is focused, let the renderer toggle recording locally.
-  if (isMainWindowFocused()) {
-    win?.webContents.send('toggle-voice-recording')
-    return
-  }
-
+  // Already recording: stop and let the active mode finish processing.
   if (globalVoiceRecording) {
     globalVoiceRecording = false
     voiceWin?.webContents.send('stop-global-recording')
+    return
+  }
+
+  // Plain voice input also works inside the main window (handled by the renderer).
+  // Edit / translate target external selections & apps, so ignore them when the
+  // main window is focused.
+  if (isMainWindowFocused()) {
+    if (mode === 'transcribe') {
+      win?.webContents.send('toggle-voice-recording')
+    }
     return
   }
 
@@ -510,6 +530,20 @@ async function handleGlobalVoiceToggle(): Promise<void> {
   lastForegroundHwnd = GetForegroundWindow()
   if (!lastForegroundHwnd) return
 
+  // Edit mode needs the currently selected text before recording the command.
+  if (mode === 'edit') {
+    await waitForHotkeyRelease()
+    pendingEditText = await captureSelectedText()
+    if (!pendingEditText) {
+      console.log('[main] voice edit: no text selected, aborting')
+      globalVoiceMode = 'transcribe'
+      return
+    }
+  } else {
+    pendingEditText = ''
+  }
+
+  globalVoiceMode = mode
   globalVoiceRecording = true
   if (!voiceWin) {
     createVoiceWindow()
@@ -573,15 +607,8 @@ async function simulateCopy(): Promise<void> {
   }
 }
 
-async function handleCrossSelection(): Promise<void> {
-  // Wait for the global shortcut keys to be released before simulating Ctrl+C.
-  // Otherwise Shift may still be held down and the simulated copy becomes
-  // Ctrl+Shift+C, which many apps treat differently from Ctrl+C.
-  await waitForHotkeyRelease()
-
+async function captureSelectedText(): Promise<string> {
   const originalText = clipboard.readText()
-
-  // Clear clipboard so we can detect whether copy succeeded
   clipboard.writeText('')
 
   let selectedText = ''
@@ -592,11 +619,20 @@ async function handleCrossSelection(): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
 
-  // Restore original clipboard
   setTimeout(() => {
     clipboard.writeText(originalText)
   }, 300)
 
+  return selectedText
+}
+
+async function handleCrossSelection(): Promise<void> {
+  // Wait for the global shortcut keys to be released before simulating Ctrl+C.
+  // Otherwise Shift may still be held down and the simulated copy becomes
+  // Ctrl+Shift+C, which many apps treat differently from Ctrl+C.
+  await waitForHotkeyRelease()
+
+  const selectedText = await captureSelectedText()
   if (!selectedText) {
     console.log('[main] no text selected')
     return
@@ -953,11 +989,71 @@ ipcMain.handle('close-popup', () => {
   popupWin = null
 })
 
+function detectVoiceLang(text: string): 'zh' | 'en' | 'ja' {
+  // Japanese kana takes priority; CJK ideographs without kana are treated as Chinese.
+  if (/[぀-ゟ゠-ヿ]/.test(text)) return 'ja'
+  if (/[一-鿿]/.test(text)) return 'zh'
+  return 'en'
+}
+
+async function translateTextForVoice(text: string): Promise<string> {
+  const settings = store.get('settings')
+  const providerName = settings.defaultProvider
+  const config = settings.providers?.[providerName]
+  if (!config?.apiKey?.trim()) {
+    throw new Error(`未配置 ${providerName} 的 API Key，无法进行语音直译`)
+  }
+
+  // Auto target: zh→en, en→zh, ja→zh (same rule as the translation panel).
+  const sourceLang = detectVoiceLang(text)
+  const targetLang: 'zh' | 'en' = sourceLang === 'zh' ? 'en' : 'zh'
+
+  const glossary = settings.glossary || []
+  const provider = createProvider(providerName, config)
+  const result = await provider.translate(
+    { text, sourceLang, targetLang },
+    glossary
+  )
+  return result.translatedText
+}
+
 ipcMain.on('global-voice-result', async (_event, text: string) => {
-  console.log('[main] global voice result:', text.slice(0, 50))
+  console.log('[main] global voice result:', text.slice(0, 50), 'mode:', globalVoiceMode)
   closeRecordingPopupWindow()
   globalVoiceRecording = false
-  await simulatePasteToForeground(text)
+
+  const mode = globalVoiceMode
+  const editText = pendingEditText
+  globalVoiceMode = 'transcribe'
+  pendingEditText = ''
+
+  try {
+    if (mode === 'edit') {
+      if (!text.trim() || !editText.trim()) return
+      const config = store.get('settings').providers?.deepseek
+      if (!config?.apiKey?.trim()) {
+        throw new Error('未配置 DeepSeek API Key，无法启用语音编辑')
+      }
+      const edited = await editTextWithVoice(editText, text, config)
+      await simulatePasteToForeground(edited)
+      return
+    }
+
+    if (mode === 'translate') {
+      if (!text.trim()) return
+      const translated = await translateTextForVoice(text)
+      await simulatePasteToForeground(translated)
+      return
+    }
+
+    await simulatePasteToForeground(text)
+  } catch (error) {
+    console.error('[main] global voice result processing failed:', error)
+    // Fall back to pasting the recognized text so the user's speech is not lost.
+    if (mode === 'translate' && text.trim()) {
+      await simulatePasteToForeground(text)
+    }
+  }
 })
 
 ipcMain.on('stop-global-recording-manual', () => {
@@ -970,6 +1066,8 @@ ipcMain.on('stop-global-recording-manual', () => {
 ipcMain.on('cancel-global-voice', () => {
   console.log('[main] cancel global voice requested from popup')
   closeRecordingPopupWindow()
+  globalVoiceMode = 'transcribe'
+  pendingEditText = ''
   if (globalVoiceRecording) {
     globalVoiceRecording = false
     voiceWin?.webContents.send('cancel-global-recording')
@@ -979,14 +1077,22 @@ ipcMain.on('cancel-global-voice', () => {
 ipcMain.on('recording-popup-ready', () => {
   console.log('[main] recording popup ready, sending pending state:', pendingRecordingState)
   if (pendingRecordingState) {
-    recordingPopupWin?.webContents.send('recording-popup-state', pendingRecordingState)
+    recordingPopupWin?.webContents.send('recording-popup-state', {
+      ...pendingRecordingState,
+      mode: globalVoiceMode,
+      editPreview: pendingEditText.slice(0, 40),
+    })
   }
 })
 
 ipcMain.on('recording-state', (_event, state: { isRecording: boolean; isTranscribing: boolean; recordingDuration: number }) => {
   console.log('[main] received recording-state:', state)
   pendingRecordingState = state
-  recordingPopupWin?.webContents.send('recording-popup-state', state)
+  recordingPopupWin?.webContents.send('recording-popup-state', {
+    ...state,
+    mode: globalVoiceMode,
+    editPreview: pendingEditText.slice(0, 40),
+  })
 })
 
 const MAX_TEXT_FILE_SIZE = 2 * 1024 * 1024 // 2MB
@@ -1117,7 +1223,9 @@ ipcMain.handle('transcribe-audio', async (_event, request: TranscribeAudioReques
       return { text: '' }
     }
 
-    if (settings.voiceInputOptimize && rawText.trim()) {
+    // Voice-edit commands must stay verbatim (they are instructions, not prose),
+    // so skip the spoken-text optimization for that mode.
+    if (settings.voiceInputOptimize && rawText.trim() && globalVoiceMode !== 'edit') {
       console.log('[main] optimizing spoken text with DeepSeek...')
       const deepseekConfig = settings.providers?.deepseek
       if (!deepseekConfig?.apiKey?.trim()) {
