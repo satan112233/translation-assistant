@@ -89,6 +89,7 @@ interface RecordingState {
   isRecording: boolean
   isTranscribing: boolean
   recordingDuration: number
+  audioLevel: number
   transcribedText: string | null
   transcriptionError: string | null
   startRecording: (language: 'auto' | LanguageCode) => Promise<void>
@@ -520,11 +521,27 @@ let streamRef: MediaStream | null = null
 let timerRef: ReturnType<typeof setInterval> | null = null
 let maxDurationTimerRef: ReturnType<typeof setTimeout> | null = null
 let cancelPendingRef = false
+let audioContextRef: AudioContext | null = null
+let analyserRef: AnalyserNode | null = null
+let levelRafRef: number | null = null
+
+function stopAudioLevelMeter(): void {
+  if (levelRafRef !== null) {
+    cancelAnimationFrame(levelRafRef)
+    levelRafRef = null
+  }
+  if (audioContextRef) {
+    void audioContextRef.close()
+    audioContextRef = null
+  }
+  analyserRef = null
+}
 
 export const useRecordingStore = create<RecordingState>((set) => ({
   isRecording: false,
   isTranscribing: false,
   recordingDuration: 0,
+  audioLevel: 0,
   transcribedText: null,
   transcriptionError: null,
 
@@ -548,7 +565,8 @@ export const useRecordingStore = create<RecordingState>((set) => ({
       clearTimeout(maxDurationTimerRef)
       maxDurationTimerRef = null
     }
-    set({ isRecording: false, recordingDuration: 0 })
+    stopAudioLevelMeter()
+    set({ isRecording: false, recordingDuration: 0, audioLevel: 0 })
   },
 
   cancelRecording: () => {
@@ -568,13 +586,46 @@ export const useRecordingStore = create<RecordingState>((set) => ({
       clearTimeout(maxDurationTimerRef)
       maxDurationTimerRef = null
     }
-    set({ isRecording: false, recordingDuration: 0 })
+    stopAudioLevelMeter()
+    set({ isRecording: false, recordingDuration: 0, audioLevel: 0 })
   },
 
   startRecording: async (language) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef = stream
+
+      // Real-time microphone level meter so the waveform only moves when the
+      // user actually speaks (flat line on silence).
+      try {
+        const audioContext = new AudioContext()
+        const analyser = audioContext.createAnalyser()
+        analyser.fftSize = 256
+        audioContext.createMediaStreamSource(stream).connect(analyser)
+        audioContextRef = audioContext
+        analyserRef = analyser
+
+        const buffer = new Uint8Array(analyser.fftSize)
+        let smoothed = 0
+        const tick = () => {
+          if (!analyserRef) return
+          analyserRef.getByteTimeDomainData(buffer)
+          let sumSquares = 0
+          for (let i = 0; i < buffer.length; i++) {
+            const v = (buffer[i] - 128) / 128
+            sumSquares += v * v
+          }
+          const rms = Math.sqrt(sumSquares / buffer.length)
+          // Noise floor + gain so quiet background reads as 0 and speech fills up.
+          const level = rms < 0.02 ? 0 : Math.min(1, (rms - 0.02) * 4)
+          smoothed = smoothed * 0.6 + level * 0.4
+          set({ audioLevel: smoothed })
+          levelRafRef = requestAnimationFrame(tick)
+        }
+        levelRafRef = requestAnimationFrame(tick)
+      } catch (meterErr) {
+        console.warn('[recording] audio level meter unavailable:', meterErr)
+      }
 
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'

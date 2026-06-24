@@ -1,25 +1,29 @@
 import { X, Check } from 'lucide-react'
 import { useRecordingStore } from '../stores'
 
-function SoundWave() {
+// Per-bar height profile; multiplied by the live mic level so bars stay flat
+// on silence and rise with the user's voice.
+const WAVE_WEIGHTS = [0.35, 0.5, 0.65, 0.8, 0.7, 0.9, 1, 0.85, 0.85, 1, 0.9, 0.7, 0.8, 0.65, 0.5, 0.35]
+
+function SoundWave({ level }: { level: number }) {
   return (
     <div className="flex items-center justify-center gap-[3px] h-8">
-      {Array.from({ length: 16 }).map((_, i) => (
-        <div
-          key={i}
-          className="w-[3px] bg-blue-500 dark:bg-blue-400 rounded-full animate-sound-wave"
-          style={{
-            animationDelay: `${i * 0.07}s`,
-            animationDuration: `${0.6 + (i % 3) * 0.2}s`,
-          }}
-        />
-      ))}
+      {WAVE_WEIGHTS.map((weight, i) => {
+        const height = 3 + 25 * Math.min(1, Math.max(0, level)) * weight
+        return (
+          <div
+            key={i}
+            className="w-[3px] bg-blue-500 dark:bg-blue-400 rounded-full transition-[height] duration-75 ease-out"
+            style={{ height: `${height}px` }}
+          />
+        )
+      })}
     </div>
   )
 }
 
 export function RecordingPanel() {
-  const { isRecording, isTranscribing, recordingDuration, stopRecording, cancelRecording } = useRecordingStore()
+  const { isRecording, isTranscribing, recordingDuration, audioLevel, stopRecording, cancelRecording } = useRecordingStore()
 
   if (!isRecording && !isTranscribing) return null
 
@@ -37,7 +41,7 @@ export function RecordingPanel() {
             </button>
 
             <div className="flex flex-col items-center gap-1 min-w-[120px]">
-              <SoundWave />
+              <SoundWave level={audioLevel} />
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 录制中 {recordingDuration}s
               </span>

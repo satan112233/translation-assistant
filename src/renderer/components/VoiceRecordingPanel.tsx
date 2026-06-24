@@ -61,6 +61,22 @@ export function VoiceRecordingPanel() {
     window.electronAPI.sendRecordingState(state)
   }, [isRecording, isTranscribing, recordingDuration])
 
+  // While recording, push the live mic level to the popup at ~15fps so its
+  // waveform reacts to the user's voice (and stays flat on silence).
+  useEffect(() => {
+    if (!isRecording) return
+    const id = setInterval(() => {
+      const s = useRecordingStore.getState()
+      window.electronAPI.sendRecordingState({
+        isRecording: s.isRecording,
+        isTranscribing: s.isTranscribing,
+        recordingDuration: s.recordingDuration,
+        audioLevel: s.audioLevel,
+      })
+    }, 66)
+    return () => clearInterval(id)
+  }, [isRecording])
+
   // Send transcription result back to main process when ready
   useEffect(() => {
     if (transcribedText !== null && !isRecording && !isTranscribing) {

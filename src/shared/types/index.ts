@@ -112,6 +112,7 @@ export interface RecordingPopupState {
   isRecording: boolean
   isTranscribing: boolean
   recordingDuration: number
+  audioLevel?: number
   mode?: 'transcribe' | 'edit' | 'translate'
   editPreview?: string
 }

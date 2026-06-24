@@ -184,7 +184,7 @@ let globalVoiceRecording = false
 let globalVoiceMode: GlobalVoiceMode = 'transcribe'
 let pendingEditText = ''
 let lastForegroundHwnd: unknown = null
-let pendingRecordingState: { isRecording: boolean; isTranscribing: boolean; recordingDuration: number } | null = null
+let pendingRecordingState: { isRecording: boolean; isTranscribing: boolean; recordingDuration: number; audioLevel?: number } | null = null
 
 async function initOcrWorker(): Promise<void> {
   try {
@@ -1046,7 +1046,7 @@ ipcMain.on('recording-popup-ready', () => {
   }
 })
 
-ipcMain.on('recording-state', (_event, state: { isRecording: boolean; isTranscribing: boolean; recordingDuration: number }) => {
+ipcMain.on('recording-state', (_event, state: { isRecording: boolean; isTranscribing: boolean; recordingDuration: number; audioLevel?: number }) => {
   console.log('[main] received recording-state:', state)
   pendingRecordingState = state
   recordingPopupWin?.webContents.send('recording-popup-state', {
