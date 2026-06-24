@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Settings, Monitor, Sun, Moon, Keyboard, Check, Mic } from 'lucide-react'
+import { Settings, Monitor, Sun, Moon, Keyboard, Check, Mic, Eye, EyeOff } from 'lucide-react'
 import { useSettingsStore } from '../stores'
 import { PROVIDER_LABELS } from '../../main/providers'
 import { LanguageSelector } from './LanguageSelector'
@@ -21,6 +21,8 @@ export function SettingsPanel() {
   const { settings, isLoaded, saveSettings } = useSettingsStore()
   const [draft, setDraft] = useState<AppSettings | null>(null)
   const [savedIndicator, setSavedIndicator] = useState(false)
+  const [showIflytekApiKey, setShowIflytekApiKey] = useState(false)
+  const [showIflytekApiSecret, setShowIflytekApiSecret] = useState(false)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const draftRef = useRef(draft)
 
@@ -298,25 +300,45 @@ export function SettingsPanel() {
                   </div>
                   <div>
                     <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">APIKey</label>
-                    <input
-                      type="password"
-                      value={draft.providers.iflytek?.apiKey || ''}
-                      onChange={(e) => updateProvider('iflytek', 'apiKey', e.target.value)}
-                      onBlur={saveDraft}
-                      placeholder="输入讯飞开放平台 APIKey"
-                      className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showIflytekApiKey ? 'text' : 'password'}
+                        value={draft.providers.iflytek?.apiKey || ''}
+                        onChange={(e) => updateProvider('iflytek', 'apiKey', e.target.value)}
+                        onBlur={saveDraft}
+                        placeholder="输入讯飞开放平台 APIKey"
+                        className="w-full h-9 px-3 pr-9 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowIflytekApiKey((prev) => !prev)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                        tabIndex={-1}
+                      >
+                        {showIflytekApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">APISecret</label>
-                    <input
-                      type="password"
-                      value={draft.providers.iflytek?.apiSecret || ''}
-                      onChange={(e) => updateProvider('iflytek', 'apiSecret', e.target.value)}
-                      onBlur={saveDraft}
-                      placeholder="输入讯飞开放平台 APISecret"
-                      className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showIflytekApiSecret ? 'text' : 'password'}
+                        value={draft.providers.iflytek?.apiSecret || ''}
+                        onChange={(e) => updateProvider('iflytek', 'apiSecret', e.target.value)}
+                        onBlur={saveDraft}
+                        placeholder="输入讯飞开放平台 APISecret"
+                        className="w-full h-9 px-3 pr-9 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowIflytekApiSecret((prev) => !prev)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                        tabIndex={-1}
+                      >
+                        {showIflytekApiSecret ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
