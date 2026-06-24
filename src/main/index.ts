@@ -8,11 +8,11 @@ import { createProvider } from './providers'
 import { terminateActiveSherpaProcess, transcribeAudio as transcribeWithSherpa } from './sherpa-onnx-service'
 import { transcribeWithZhipu } from './zhipu-asr-service'
 import { transcribeWithIflytek } from './iflytek-asr-service'
+import { recognizeImage, terminateActiveRapidOcrProcess } from './rapidocr-service'
 import { optimizeSpeech } from './utils/speech-optimizer'
 import { editTextWithVoice } from './utils/voice-editor'
 import { MAX_HISTORY_COUNT, MAX_SPEECH_OPTIMIZATION_COUNT } from '../shared/types'
 import type { GlossaryEntry, MultiTranslateRequest, MultiTranslateResult, TranslateRequest, TranscribeAudioRequest, SpeechOptimizationRecord, VoiceDictionaryEntry } from '../shared/types'
-import { createWorker, type Worker } from 'tesseract.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -177,7 +177,6 @@ let popupWin: BrowserWindow | null = null
 let voiceWin: BrowserWindow | null = null
 let recordingPopupWin: BrowserWindow | null = null
 let tray: Tray | null = null
-let ocrWorker: Worker | null = null
 
 let voiceShortcutRegistered = false
 let globalVoiceRecording = false
@@ -185,18 +184,6 @@ let globalVoiceMode: GlobalVoiceMode = 'transcribe'
 let pendingEditText = ''
 let lastForegroundHwnd: unknown = null
 let pendingRecordingState: { isRecording: boolean; isTranscribing: boolean; recordingDuration: number; audioLevel?: number } | null = null
-
-async function initOcrWorker(): Promise<void> {
-  try {
-    console.log('[main] initializing OCR worker...')
-    ocrWorker = await createWorker('chi_sim+eng+jpn', undefined, {
-      errorHandler: (e) => console.error('[tesseract]', e),
-    })
-    console.log('[main] OCR worker ready')
-  } catch (error) {
-    console.error('[main] failed to initialize OCR worker:', error)
-  }
-}
 
 function createWindow(): void {
   const bounds = store.get('settings.windowBounds')
@@ -1146,14 +1133,7 @@ ipcMain.handle('save-text-file', async (_event, request: { fileName: string; con
 ipcMain.handle('ocr-image', async (_event, imageBase64: string) => {
   try {
     console.log('[main] starting OCR on pasted image...')
-    if (!ocrWorker) {
-      console.log('[main] OCR worker not ready, creating on demand...')
-      ocrWorker = await createWorker('chi_sim+eng+jpn', undefined, {
-        errorHandler: (e) => console.error('[tesseract]', e),
-      })
-    }
-    const ret = await ocrWorker.recognize(imageBase64)
-    const recognizedText = ret.data.text.trim()
+    const recognizedText = await recognizeImage(imageBase64)
 
     if (!recognizedText) {
       throw new Error('未能识别出文字，请尝试粘贴更清晰的图片。')
@@ -1265,9 +1245,6 @@ app.whenReady().then(async () => {
     createVoiceWindow()
   }
 
-  // Pre-init OCR worker in background so first use is fast
-  void initOcrWorker()
-
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
@@ -1290,14 +1267,7 @@ app.on('before-quit', async () => {
   closeRecordingPopupWindow()
   tray?.destroy()
   terminateActiveSherpaProcess()
-  if (ocrWorker) {
-    try {
-      await ocrWorker.terminate()
-      console.log('[main] OCR worker terminated')
-    } catch {
-      // ignore
-    }
-  }
+  terminateActiveRapidOcrProcess()
 })
 
 app.on('will-quit', () => {

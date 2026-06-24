@@ -25,8 +25,8 @@
 
 ### 3. 截图 OCR 翻译
 - 使用 Windows 截图工具（`Win + Shift + S`）截图后，在输入框中 `Ctrl + V` 粘贴。
-- 自动 OCR 识别图片中的文字并翻译。
-- 支持中文、英文、日文识别。
+- 使用本地 **RapidOcrOnnx**（基于 PaddleOCR）识别图片中的文字并翻译。
+- 支持中文、英文混排识别，识别结果带标点符号。
 
 ### 4. 翻译结果增强
 - **译文**：基于大语言模型的自然翻译。
@@ -209,7 +209,7 @@ npm run dist
 - **Zustand** — 轻量状态管理
 - **electron-store** — 本地设置与历史持久化
 - **koffi** — Windows 原生 API 调用，实现划词复制
-- **tesseract.js** — 离线 OCR 文字识别
+- **RapidOcrOnnx** — 离线 OCR 文字识别（截图 / 粘贴图片）
 - **Sherpa-onnx** — 离线语音识别（语音输入转文字）
 - **DeepSeek** — 口语内容优化、翻译
 

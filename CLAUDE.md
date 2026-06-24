@@ -20,7 +20,7 @@ There are currently no test scripts configured.
 
 The project is structured around three Electron processes:
 
-- **`src/main/`** — Electron main process. Creates the window, manages the system tray, registers global shortcuts (`Ctrl+Alt+T` for toggle and `Ctrl+Alt+C` for cross-selection), persists settings via `electron-store`, makes all LLM API requests, runs OCR via `tesseract.js`, runs speech recognition via Zhipu ASR, iFlytek ASR, or offline Sherpa-onnx, and saves speech optimization records.
+- **`src/main/`** — Electron main process. Creates the window, manages the system tray, registers global shortcuts (`Ctrl+Alt+T` for toggle and `Ctrl+Alt+C` for cross-selection), persists settings via `electron-store`, makes all LLM API requests, runs OCR via RapidOcrOnnx, runs speech recognition via Zhipu ASR, iFlytek ASR, or offline Sherpa-onnx, and saves speech optimization records.
 - **`src/preload/`** — Preload script, built as CommonJS. Exposes a typed `window.electronAPI` bridge so the renderer can invoke main-process IPC handlers safely.
 - **`src/renderer/`** — React application. Manages UI state with Zustand and renders the translation interface.
 - **`src/shared/`** — Shared TypeScript types used by both main and renderer.
@@ -65,11 +65,12 @@ Providers live in `src/main/providers/`. `OpenAICompatibleProvider` is the only 
 
 Settings are stored with `electron-store` in the main process. On first load, the renderer merges stored settings with `DEFAULT_PROVIDER_CONFIGS` so new providers can be introduced without losing saved API keys.
 
-### OCR (tesseract.js)
+### OCR (RapidOcrOnnx)
 
-- The main process creates a tesseract worker at app startup (`initOcrWorker`) for fast first-use response.
-- The worker loads `chi_sim+eng+jpn` language packs from CDN on first run (~5-6MB). Subsequent OCR requests reuse the worker.
-- The `ocr-image` IPC handler receives a base64 image and returns recognized text.
+- OCR runs locally via `RapidOcrOnnx.exe` from `resources/rapidocr/` (packaged via `extraResources`).
+- Models (`ch_PP-OCRv3_det_infer.onnx`, `ch_PP-OCRv3_rec_infer.onnx`, `ch_ppocr_mobile_v2.0_cls_infer.onnx`, `ppocr_keys_v1.txt`) are bundled with the app under `resources/rapidocr/models/`.
+- The `ocr-image` IPC handler receives a base64 image, writes it to a temp file, spawns `RapidOcrOnnx.exe`, and parses the result text from the generated `<image>-result.txt` file.
+- Recognition supports Chinese, English, and mixed Chinese-English text, and produces punctuation naturally.
 
 ### Voice Input (Sherpa-onnx / Zhipu ASR / iFlytek ASR / DeepSeek optimization)
 
@@ -172,6 +173,7 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 - Speech optimization panel: `src/renderer/components/SpeechOptimizationPanel.tsx`
 - Voice recorder: `src/renderer/components/VoiceRecorder.tsx`
 - Voice editor (Speak to Edit): `src/main/utils/voice-editor.ts`
+- RapidOcrOnnx service: `src/main/rapidocr-service.ts`
 - Zhipu ASR service: `src/main/zhipu-asr-service.ts`
 - iFlytek ASR service: `src/main/iflytek-asr-service.ts`
 - History panel: `src/renderer/components/HistoryPanel.tsx`
@@ -186,7 +188,7 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 Key packaging settings:
 - `files` explicitly includes `dist/**/*` and `dist-electron/**/*` because `dist` is listed in `.gitignore` and would otherwise be excluded by electron-builder, causing the production app to load the source `index.html` and show a blank window.
 - `directories.output` is set to `release` so that electron-builder's output (`win-unpacked`, installer `.exe`, etc.) does not contaminate the renderer build directory (`dist`).
-- Sherpa-onnx binaries are bundled via `extraResources`.
+- Sherpa-onnx and RapidOcrOnnx binaries/models are bundled via `extraResources`.
 
 ## Development & Release Workflow
 
