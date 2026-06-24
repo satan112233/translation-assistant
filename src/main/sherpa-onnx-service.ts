@@ -223,10 +223,22 @@ function runSherpa(sherpaPath: string, args: string[]): Promise<string> {
         return
       }
 
-      const text = stdout.trim()
-      if (!text) {
+      const raw = stdout.trim()
+      if (!raw) {
         reject(new Error('语音识别未返回文本'))
         return
+      }
+
+      // Sherpa-onnx v1.13.2 outputs a JSON object; older versions output plain text.
+      // Extract the "text" field when JSON is detected, otherwise fall back to raw stdout.
+      let text = raw
+      if (raw.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(raw) as { text?: string }
+          text = parsed.text ?? ''
+        } catch {
+          // Not valid JSON, keep raw stdout.
+        }
       }
 
       resolve(text)
