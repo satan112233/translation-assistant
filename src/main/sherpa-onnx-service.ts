@@ -269,11 +269,11 @@ export async function transcribeAudio(request: TranscribeAudioRequest): Promise<
     writeFileSync(wavPath, Buffer.from(request.audioBase64, 'base64'))
 
     const args = [
-      '--tokens', tokens,
-      '--paraformer', paraformer,
-      '--model-type', 'paraformer',
-      '--num-threads', '4',
-      '--debug', '0',
+      `--tokens=${tokens}`,
+      `--paraformer=${paraformer}`,
+      `--model-type=paraformer`,
+      `--num-threads=4`,
+      `--debug=0`,
       wavPath,
     ]
 
