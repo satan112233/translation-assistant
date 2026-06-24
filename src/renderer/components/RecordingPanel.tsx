@@ -1,26 +1,6 @@
 import { X, Check } from 'lucide-react'
 import { useRecordingStore } from '../stores'
-
-// Per-bar height profile; multiplied by the live mic level so bars stay flat
-// on silence and rise with the user's voice.
-const WAVE_WEIGHTS = [0.35, 0.5, 0.65, 0.8, 0.7, 0.9, 1, 0.85, 0.85, 1, 0.9, 0.7, 0.8, 0.65, 0.5, 0.35]
-
-function SoundWave({ level }: { level: number }) {
-  return (
-    <div className="flex items-center justify-center gap-[3px] h-8">
-      {WAVE_WEIGHTS.map((weight, i) => {
-        const height = 3 + 25 * Math.min(1, Math.max(0, level)) * weight
-        return (
-          <div
-            key={i}
-            className="w-[3px] bg-blue-500 dark:bg-blue-400 rounded-full transition-[height] duration-300 ease-out"
-            style={{ height: `${height}px` }}
-          />
-        )
-      })}
-    </div>
-  )
-}
+import { SoundWave } from './SoundWave'
 
 export function RecordingPanel() {
   const { isRecording, isTranscribing, recordingDuration, audioLevel, stopRecording, cancelRecording } = useRecordingStore()
