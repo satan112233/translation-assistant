@@ -2,6 +2,8 @@
   "name": "translation-assistant",
   "private": true,
   "version": "0.16.11",
+  "description": "A lightweight Windows desktop translation assistant powered by OpenAI-compatible LLM APIs.",
+  "author": "Translation Assistant Dev",
   "type": "module",
   "main": "dist-electron/main/index.js",
   "scripts": {
@@ -13,6 +15,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json"
   },
   "build": {
+    "appId": "com.translation-assistant.app",
+    "productName": "Translation Assistant",
+    "icon": "build/icon.ico",
     "extraResources": [
       {
         "from": "resources/whisper",
