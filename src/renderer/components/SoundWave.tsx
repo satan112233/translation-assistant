@@ -13,7 +13,7 @@ const BARS = Array.from({ length: BAR_COUNT }, (_, i) => ({
 }))
 
 const MIN_H = 3
-const MAX_EXTRA = 25
+const MAX_EXTRA = 38
 
 /**
  * Voice-reactive waveform. `level` (0–1) is the live mic volume: it scales the
@@ -52,7 +52,7 @@ export function SoundWave({ level }: { level: number }) {
   }, [])
 
   return (
-    <div className="flex items-center justify-center gap-[3px] h-8">
+    <div className="flex items-center justify-center gap-[3px] h-12">
       {BARS.map((_, i) => (
         <div
           key={i}
