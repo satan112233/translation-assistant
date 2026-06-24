@@ -178,7 +178,12 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 
 ## Packaging
 
-`electron-builder` is configured implicitly through the `dist` script. The `main` field in `package.json` points to `dist-electron/main/index.js` for packaged builds.
+`electron-builder` is configured through the `build` field in `package.json` and the `dist` script. The `main` field points to `dist-electron/main/index.js` for packaged builds.
+
+Key packaging settings:
+- `files` explicitly includes `dist/**/*` and `dist-electron/**/*` because `dist` is listed in `.gitignore` and would otherwise be excluded by electron-builder, causing the production app to load the source `index.html` and show a blank window.
+- `directories.output` is set to `release` so that electron-builder's output (`win-unpacked`, installer `.exe`, etc.) does not contaminate the renderer build directory (`dist`).
+- Whisper binaries are bundled via `extraResources`.
 
 ## Development & Release Workflow
 

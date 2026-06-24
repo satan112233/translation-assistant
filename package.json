@@ -18,6 +18,14 @@
     "appId": "com.translation-assistant.app",
     "productName": "Translation Assistant",
     "icon": "build/icon.ico",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "**/*",
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
     "extraResources": [
       {
         "from": "resources/whisper",
