@@ -171,7 +171,7 @@ function mergeWithDefaults(settings: Partial<AppSettings>): AppSettings {
     popupPinned: settings.popupPinned ?? defaultSettings.popupPinned,
     voiceInputEnabled: settings.voiceInputEnabled ?? defaultSettings.voiceInputEnabled,
     voiceInputProvider:
-      (settings.voiceInputProvider === 'local' ? 'sherpa' : settings.voiceInputProvider) ??
+      settings.voiceInputProvider ??
       (mergedProviders.zhipu?.apiKey
         ? 'zhipu'
         : mergedProviders.iflytek?.apiKey && mergedProviders.iflytek?.appId && mergedProviders.iflytek?.apiSecret
