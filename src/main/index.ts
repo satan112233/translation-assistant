@@ -1107,7 +1107,7 @@ ipcMain.handle('transcribe-audio', async (_event, request: TranscribeAudioReques
       if (!deepseekConfig?.apiKey?.trim()) {
         throw new Error('未配置 DeepSeek API Key，无法启用口语内容优化')
       }
-      const optimizedText = await optimizeSpeech(rawText, deepseekConfig)
+      const optimizedText = await optimizeSpeech(rawText, deepseekConfig, settings.glossary)
       console.log('[main] optimized text:', optimizedText.slice(0, 50))
 
       if (!isMeaningfulSpeechText(optimizedText)) {
