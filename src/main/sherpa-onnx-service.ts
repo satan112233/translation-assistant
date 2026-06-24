@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process'
 import { createWriteStream, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import https from 'node:https'
 import path from 'node:path'
+import * as tar from 'tar'
 import type { TranscribeAudioRequest, TranscribeAudioResult } from '../shared/types'
 
 const MODEL_NAME = 'sherpa-onnx-paraformer-zh-small-2024-03-09'
@@ -100,22 +101,11 @@ function downloadFile(url: string, dest: string): Promise<void> {
   })
 }
 
-function extractTarBz2(archivePath: string, destDir: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    ensureDir(destDir)
-    const proc = spawn('tar', ['-xjf', archivePath, '-C', destDir], { windowsHide: true })
-    let stderr = ''
-    proc.stderr?.on('data', (data: Buffer) => {
-      stderr += data.toString()
-    })
-    proc.on('close', (code) => {
-      if (code === 0) {
-        resolve()
-      } else {
-        reject(new Error(`解压模型失败：${stderr.trim() || `tar 退出码 ${code}`}`))
-      }
-    })
-    proc.on('error', (err) => reject(err))
+async function extractTarBz2(archivePath: string, destDir: string): Promise<void> {
+  ensureDir(destDir)
+  await tar.extract({
+    file: archivePath,
+    cwd: destDir,
   })
 }
 
