@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { spawn } from 'node:child_process'
-import { createWriteStream, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { createWriteStream, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import https from 'node:https'
 import path from 'node:path'
 import * as tar from 'tar'
@@ -46,20 +46,28 @@ function ensureDir(dir: string): void {
 
 function downloadFile(url: string, dest: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const file = createWriteStream(dest)
+    const existingSize = existsSync(dest) ? statSync(dest).size : 0
+    const file = createWriteStream(dest, { flags: existingSize > 0 ? 'a' : 'w' })
+    const headers: Record<string, string> = {
+      'User-Agent': 'translation-assistant/1.0',
+    }
+    if (existingSize > 0) {
+      headers['Range'] = `bytes=${existingSize}-`
+      console.log(`[sherpa] resuming download from byte ${existingSize}`)
+    }
+
     https
       .get(
         url,
         {
           timeout: 120_000,
-          headers: {
-            'User-Agent': 'translation-assistant/1.0',
-          },
+          headers,
         },
         (response) => {
           if (response.statusCode === 302 || response.statusCode === 301 || response.statusCode === 307 || response.statusCode === 308) {
             const location = response.headers.location
             if (!location) {
+              file.close()
               reject(new Error('模型下载重定向缺少 Location'))
               return
             }
@@ -69,19 +77,30 @@ function downloadFile(url: string, dest: string): Promise<void> {
             downloadFile(redirectUrl, dest).then(resolve).catch(reject)
             return
           }
-          if (response.statusCode !== 200) {
+          if (response.statusCode !== 200 && response.statusCode !== 206) {
+            file.close()
             reject(new Error(`模型下载失败，HTTP ${response.statusCode}`))
             return
           }
 
+          // Server did not honor Range header; restart from beginning.
+          if (existingSize > 0 && response.statusCode !== 206) {
+            console.log('[sherpa] server does not support resume, restarting download')
+            file.close()
+            rmSync(dest, { force: true })
+            downloadFile(url, dest).then(resolve).catch(reject)
+            return
+          }
+
           const total = parseInt(response.headers['content-length'] || '0', 10)
+          const alreadyDownloaded = response.statusCode === 206 ? existingSize : 0
           let downloaded = 0
           let lastLoggedPercent = -1
 
           response.on('data', (chunk: Buffer) => {
             downloaded += chunk.length
             if (total > 0) {
-              const percent = Math.floor((downloaded / total) * 100)
+              const percent = Math.floor(((alreadyDownloaded + downloaded) / (alreadyDownloaded + total)) * 100)
               if (percent !== lastLoggedPercent && percent % 10 === 0) {
                 lastLoggedPercent = percent
                 console.log(`[sherpa] downloading model ${percent}%`)
@@ -129,19 +148,28 @@ async function ensureModel(): Promise<string> {
   let lastError: Error | undefined
 
   for (const url of MODEL_URLS) {
-    try {
-      console.log('[sherpa] trying download from', url)
-      await downloadFile(url, archivePath)
-      console.log('[sherpa] extracting model archive...')
-      await extractTarBz2(archivePath, getModelBaseDir())
-      rmSync(archivePath, { force: true })
-      console.log('[sherpa] model ready at', modelDir)
-      return modelDir
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error))
-      console.error(`[sherpa] failed to download from ${url}:`, lastError.message)
-      if (existsSync(archivePath)) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`[sherpa] trying download from ${url} (attempt ${attempt}/3)`)
+        await downloadFile(url, archivePath)
+        console.log('[sherpa] extracting model archive...')
+        await extractTarBz2(archivePath, getModelBaseDir())
         rmSync(archivePath, { force: true })
+        console.log('[sherpa] model ready at', modelDir)
+        return modelDir
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error))
+        console.error(`[sherpa] attempt ${attempt} failed:`, lastError.message)
+        // Keep partial download file so the next attempt can resume.
+        // Only clean it up on the final attempt or if extraction failed
+        // (archive may be corrupted).
+        if (attempt < 3 && !lastError.message.includes('解压')) {
+          await new Promise((r) => setTimeout(r, 2000 * attempt))
+          continue
+        }
+        if (existsSync(archivePath)) {
+          rmSync(archivePath, { force: true })
+        }
       }
     }
   }
