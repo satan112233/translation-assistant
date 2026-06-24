@@ -121,13 +121,11 @@ const defaultSettings: AppSettings = {
   alwaysOnTop: false,
   theme: 'light',
   popupTargetLang: 'zh',
-  clipboardMonitor: false,
   shortcuts: { ...DEFAULT_SHORTCUTS },
   comparisonMode: false,
   glossary: [],
   voiceDictionary: [],
   popupPinned: false,
-  autoCopyResult: false,
   voiceInputEnabled: true,
   voiceInputProvider: 'local',
   voiceInputOptimize: true,
@@ -165,7 +163,6 @@ function mergeWithDefaults(settings: Partial<AppSettings>): AppSettings {
     glossary: settings.glossary ?? defaultSettings.glossary,
     voiceDictionary: settings.voiceDictionary ?? defaultSettings.voiceDictionary,
     popupPinned: settings.popupPinned ?? defaultSettings.popupPinned,
-    autoCopyResult: settings.autoCopyResult ?? defaultSettings.autoCopyResult,
     voiceInputEnabled: settings.voiceInputEnabled ?? defaultSettings.voiceInputEnabled,
     voiceInputProvider:
       settings.voiceInputProvider ??
@@ -747,10 +744,6 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
           isLoading: false,
           error: successCount === 0 ? '所有模型翻译均失败，请检查 API Key 和网络' : null,
         })
-
-        if (settings.autoCopyResult && primaryResult) {
-          void navigator.clipboard.writeText(primaryResult.translatedText)
-        }
       } else {
         const providerConfig = settings.providers[settings.defaultProvider]
         if (!providerConfig) {
@@ -776,10 +769,6 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
           timestamp: Date.now(),
         }
         void useHistoryStore.getState().addHistory(historyRecord)
-
-        if (settings.autoCopyResult) {
-          void navigator.clipboard.writeText(result.translatedText)
-        }
 
         set({ result, isLoading: false })
       }

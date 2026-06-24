@@ -84,13 +84,11 @@ const store = new Store<{
     alwaysOnTop: boolean
     theme: 'light' | 'dark' | 'system'
     popupTargetLang: 'zh' | 'en' | 'ja'
-    clipboardMonitor: boolean
     shortcuts: { toggleWindow: string; crossSelection: string }
     comparisonMode: boolean
     glossary: GlossaryEntry[]
     voiceDictionary: VoiceDictionaryEntry[]
     popupPinned: boolean
-    autoCopyResult: boolean
     voiceInputEnabled: boolean
     voiceInputProvider: 'local' | 'zhipu' | 'iflytek'
     voiceInputOptimize: boolean
@@ -157,13 +155,11 @@ const store = new Store<{
       alwaysOnTop: false,
       theme: 'light',
       popupTargetLang: 'zh',
-      clipboardMonitor: false,
       shortcuts: DEFAULT_SHORTCUTS,
       comparisonMode: false,
       glossary: [],
       voiceDictionary: [],
       popupPinned: false,
-      autoCopyResult: false,
       voiceInputEnabled: true,
       voiceInputProvider: 'local',
       voiceInputOptimize: true,
@@ -182,8 +178,6 @@ let voiceWin: BrowserWindow | null = null
 let recordingPopupWin: BrowserWindow | null = null
 let tray: Tray | null = null
 let ocrWorker: Worker | null = null
-let clipboardMonitorInterval: ReturnType<typeof setInterval> | null = null
-let lastClipboardText = ''
 
 let voiceShortcutRegistered = false
 let globalVoiceRecording = false
@@ -202,32 +196,6 @@ async function initOcrWorker(): Promise<void> {
   } catch (error) {
     console.error('[main] failed to initialize OCR worker:', error)
   }
-}
-
-function startClipboardMonitor(): void {
-  if (clipboardMonitorInterval) return
-  console.log('[main] starting clipboard monitor')
-  lastClipboardText = clipboard.readText()
-  clipboardMonitorInterval = setInterval(() => {
-    const text = clipboard.readText().trim()
-    if (!text || text === lastClipboardText || text.length < 2) return
-    lastClipboardText = text
-    console.log('[main] clipboard changed:', text.slice(0, 50))
-    void handleClipboardTranslate(text)
-  }, 500)
-}
-
-function stopClipboardMonitor(): void {
-  if (!clipboardMonitorInterval) return
-  console.log('[main] stopping clipboard monitor')
-  clearInterval(clipboardMonitorInterval)
-  clipboardMonitorInterval = null
-}
-
-async function handleClipboardTranslate(text: string): Promise<void> {
-  // Avoid creating popup if main window is focused (user is actively using the app)
-  if (win?.isFocused()) return
-  createPopupWindow(text)
 }
 
 function createWindow(): void {
@@ -715,15 +683,6 @@ ipcMain.handle('set-settings', (_event, settings) => {
     const prev = store.get('settings')
     store.set('settings', settings)
     win?.setAlwaysOnTop(settings.alwaysOnTop)
-
-    // Toggle clipboard monitor when setting changes
-    if (settings.clipboardMonitor !== prev.clipboardMonitor) {
-      if (settings.clipboardMonitor) {
-        startClipboardMonitor()
-      } else {
-        stopClipboardMonitor()
-      }
-    }
 
     // Re-register global shortcuts when shortcuts change
     const shortcutsChanged =
@@ -1287,11 +1246,6 @@ app.whenReady().then(async () => {
 
   // Pre-init OCR worker in background so first use is fast
   void initOcrWorker()
-
-  // Start clipboard monitor if enabled
-  if (settings.clipboardMonitor) {
-    startClipboardMonitor()
-  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

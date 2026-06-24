@@ -20,7 +20,7 @@ There are currently no test scripts configured.
 
 The project is structured around three Electron processes:
 
-- **`src/main/`** — Electron main process. Creates the window, manages the system tray, registers global shortcuts (`Ctrl+Alt+T` for toggle and `Ctrl+Alt+C` for cross-selection), persists settings via `electron-store`, makes all LLM API requests, runs OCR via `tesseract.js`, runs speech recognition via Zhipu ASR, iFlytek ASR, or offline `whisper.cpp`, saves speech optimization records, and polls clipboard when clipboard monitoring is enabled.
+- **`src/main/`** — Electron main process. Creates the window, manages the system tray, registers global shortcuts (`Ctrl+Alt+T` for toggle and `Ctrl+Alt+C` for cross-selection), persists settings via `electron-store`, makes all LLM API requests, runs OCR via `tesseract.js`, runs speech recognition via Zhipu ASR, iFlytek ASR, or offline `whisper.cpp`, and saves speech optimization records.
 - **`src/preload/`** — Preload script, built as CommonJS. Exposes a typed `window.electronAPI` bridge so the renderer can invoke main-process IPC handlers safely.
 - **`src/renderer/`** — React application. Manages UI state with Zustand and renders the translation interface.
 - **`src/shared/`** — Shared TypeScript types used by both main and renderer.
@@ -29,7 +29,7 @@ The project is structured around three Electron processes:
 
 The renderer communicates with the main process through these channels:
 
-- `get-settings` / `set-settings` — Load and persist app settings (API keys, provider config, window bounds, always-on-top state, theme, popup target language, clipboard monitor, shortcuts, comparison mode, glossary, popup pinned state, auto-copy result, voice input enabled, voice input language).
+- `get-settings` / `set-settings` — Load and persist app settings (API keys, provider config, window bounds, always-on-top state, theme, popup target language, shortcuts, comparison mode, glossary, popup pinned state, voice input enabled, voice input language).
 - `get-glossary` / `set-glossary` — Load and persist the terminology glossary used to guide translations.
 - `get-voice-dictionary` / `set-voice-dictionary` — Load and persist the personal voice dictionary used to correct ASR mis-recognitions of proper nouns during speech optimization.
 - `translate` — Send translation parameters to the main process, which calls a single LLM and returns the result.
@@ -119,12 +119,6 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 
 - **Cancel** (`cancelRecording()`): stops the recorder, discards captured audio, and skips transcription/optimization/paste. Used by the cancel button in `RecordingPanel`/`RecordingPopup` and the close button in `RecordingPopup`.
 - **Confirm/Complete** (`stopRecording()`): stops the recorder and proceeds to transcribe → optimize → paste the result.
-
-### Clipboard Monitor
-
-- When enabled via `settings.clipboardMonitor`, the main process polls the clipboard every 500ms.
-- On detecting new text (≥2 chars), it spawns a popup window for translation.
-- Monitoring is automatically suppressed while the main window is focused to avoid interrupting the user.
 
 ## Important Implementation Details
 

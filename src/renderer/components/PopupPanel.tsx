@@ -66,9 +66,6 @@ export function PopupPanel() {
         detectedSourceLang: data.detectedSourceLang,
         pronunciation: data.pronunciation,
       })
-      if (settings.autoCopyResult) {
-        void navigator.clipboard.writeText(data.translatedText)
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '翻译失败')
     } finally {

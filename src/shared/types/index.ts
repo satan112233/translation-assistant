@@ -46,13 +46,11 @@ export interface AppSettings {
   alwaysOnTop: boolean
   theme: 'light' | 'dark' | 'system'
   popupTargetLang: LanguageCode
-  clipboardMonitor: boolean
   shortcuts: ShortcutSettings
   comparisonMode: boolean
   glossary: GlossaryEntry[]
   voiceDictionary: VoiceDictionaryEntry[]
   popupPinned: boolean
-  autoCopyResult: boolean
   voiceInputEnabled: boolean
   voiceInputProvider: 'local' | 'zhipu' | 'iflytek'
   voiceInputOptimize: boolean
