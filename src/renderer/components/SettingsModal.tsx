@@ -291,7 +291,7 @@ export function SettingsPanel() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">口语内容优化</label>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    使用 DeepSeek 将口语化识别结果提炼为简洁精准的书面语
+                    使用 DeepSeek 对口语识别结果进行润色：去除填充词和多余重复、处理改口、优化措辞，使其自然清晰流畅，同时保留表达原意
                   </p>
                 </div>
                 <button
