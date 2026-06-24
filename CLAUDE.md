@@ -82,7 +82,7 @@ Three global voice hotkeys share the same recording pipeline (all gated by `sett
 
 - **`Ctrl+Alt+V`** (transcribe) toggles recording and pastes the recognized (optionally optimized) text.
 - **`Ctrl+Alt+E`** (edit, "Speak to Edit") first captures the foreground app's selected text via `captureSelectedText()` (simulated Ctrl+C, shared with cross-selection), then records a spoken command. The raw command (optimization is skipped for this mode) and the selected text are sent to DeepSeek via `src/main/utils/voice-editor.ts` (`editTextWithVoice`), and the rewritten text is pasted back over the selection. Commands like "改短一点 / 更正式 / 翻译成英文 / 修正语法" are supported.
-- **`Ctrl+Alt+T`** (translate) records speech, optimizes it, then auto-translates via `translateTextForVoice()` and pastes the translation. The target language is auto-detected (zh→en, en→zh, ja→zh) — no configuration. On translation failure it falls back to pasting the recognized text.
+- **`Ctrl+Alt+F`** (translate) records speech, optimizes it, then auto-translates via `translateTextForVoice()` and pastes the translation. The target language is auto-detected (zh→en, en→zh, ja→zh) — no configuration. On translation failure it falls back to pasting the recognized text.
 
 The recognized-text result is delivered to the main process via `global-voice-result`, which branches on `globalVoiceMode`. The `RecordingPopup` shows a mode-specific title ("语音输入 / 语音编辑 / 语音直译") and an edit preview; the mode/preview are injected by the main process into the `recording-popup-state` payload (`RecordingPopupState.mode` / `.editPreview`). Edit and translate only fire when the main window is NOT focused (they target external selections/apps); plain transcribe also works inside the main window.
 

@@ -403,7 +403,7 @@ export function SettingsPanel() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-600 dark:text-gray-300">语音直译（说一种语言出译文）</span>
-                  <span className="px-2 py-1 text-xs rounded border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 select-none">Ctrl+Alt+T</span>
+                  <span className="px-2 py-1 text-xs rounded border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 select-none">Ctrl+Alt+F</span>
                 </div>
               </div>
             </div>

@@ -42,7 +42,7 @@ const HOTKEY_VKEYS = [VK_SHIFT, VK_CONTROL, VK_MENU, VK_C]
 
 const GLOBAL_VOICE_SHORTCUT = 'Ctrl+Alt+V'
 const GLOBAL_VOICE_EDIT_SHORTCUT = 'Ctrl+Alt+E'
-const GLOBAL_VOICE_TRANSLATE_SHORTCUT = 'Ctrl+Alt+T'
+const GLOBAL_VOICE_TRANSLATE_SHORTCUT = 'Ctrl+Alt+F'
 
 type GlobalVoiceMode = 'transcribe' | 'edit' | 'translate'
 
