@@ -618,7 +618,11 @@ export const useRecordingStore = create<RecordingState>((set) => ({
           const rms = Math.sqrt(sumSquares / buffer.length)
           // Noise floor + gain so quiet background reads as 0 and speech fills up.
           const level = rms < 0.02 ? 0 : Math.min(1, (rms - 0.02) * 4)
-          smoothed = smoothed * 0.6 + level * 0.4
+          // Fast attack, slow release: bars rise responsively to speech but fade
+          // down smoothly instead of snapping back to flat on silence.
+          const coeff = level > smoothed ? 0.3 : 0.08
+          smoothed = smoothed * (1 - coeff) + level * coeff
+          if (smoothed < 0.001) smoothed = 0
           set({ audioLevel: smoothed })
           levelRafRef = requestAnimationFrame(tick)
         }
