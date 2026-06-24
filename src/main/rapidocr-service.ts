@@ -90,12 +90,14 @@ export async function recognizeImage(imageBase64: string): Promise<string> {
   try {
     writeFileSync(imagePath, Buffer.from(imageBase64, 'base64'))
 
+    // RapidOcrOnnx treats --models as the base directory and appends
+    // --det/--cls/--rec/--keys filenames to it automatically.
     const args = [
       '--models', modelsDir,
-      '--det', path.join(modelsDir, 'ch_PP-OCRv3_det_infer.onnx'),
-      '--cls', path.join(modelsDir, 'ch_ppocr_mobile_v2.0_cls_infer.onnx'),
-      '--rec', path.join(modelsDir, 'ch_PP-OCRv3_rec_infer.onnx'),
-      '--keys', path.join(modelsDir, 'ppocr_keys_v1.txt'),
+      '--det', 'ch_PP-OCRv3_det_infer.onnx',
+      '--cls', 'ch_ppocr_mobile_v2.0_cls_infer.onnx',
+      '--rec', 'ch_PP-OCRv3_rec_infer.onnx',
+      '--keys', 'ppocr_keys_v1.txt',
       '--image', imagePath,
       '--numThread', '4',
       '--padding', '50',
