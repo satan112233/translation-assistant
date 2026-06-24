@@ -167,3 +167,23 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 ## Packaging
 
 `electron-builder` is configured implicitly through the `dist` script. The `main` field in `package.json` points to `dist-electron/main/index.js` for packaged builds.
+
+## Development & Release Workflow
+
+Whenever a new requirement is implemented or a bug is fixed, the following must be done before considering the change complete:
+
+1. **Bump the version in `package.json`** following SemVer:
+   - Breaking changes → major
+   - New features / significant changes → minor
+   - Bug fixes / small adjustments / process changes → patch
+2. **Update project memory** (`C:\Users\34762\.claude\projects\D--workspace-my-work-translation-assistant\memory\`) with the new version, completed features, and any changed constraints.
+3. **Update `README.md`** if the change affects user-facing features, installation, running, building, or shortcuts.
+4. **Update `CLAUDE.md`** if the change affects architecture, IPC, settings, build config, file locations, or important implementation details.
+5. **Commit and push** the changes to the `master` branch on GitHub:
+   ```bash
+   git add .
+   git commit -m "vX.Y.Z: 改动摘要"
+   git push origin master
+   ```
+
+This ensures the version number, documentation, project memory, and remote repository all stay in sync.

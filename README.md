@@ -226,6 +226,27 @@ translation-assistant/
 
 ---
 
+## 🔄 开发与发布流程
+
+每完成一次新需求或 Bug 修复，需要同步完成以下事项，确保版本号、文档、项目记忆和远程仓库保持一致：
+
+1. **更新 `package.json` 版本号**（遵循 SemVer）：
+   - 破坏性变更 → major
+   - 新增功能 / 较大改动 → minor
+   - Bug 修复 / 小调整 / 流程规范 → patch
+2. **更新项目记忆**：记录版本、完成功能、待办需求变化及任何新的项目约束。
+3. **更新 `README.md`**：如影响用户功能、安装运行、快捷键等。
+4. **更新 `CLAUDE.md`**：如影响架构、IPC、设置、构建配置、文件位置或重要实现细节。
+5. **提交并推送到 GitHub**：
+
+```bash
+git add .
+git commit -m "vX.Y.Z: 改动摘要"
+git push origin master
+```
+
+---
+
 ## 🤝 参与贡献
 
 欢迎提交 Issue 与 PR。如果你发现 bug 或有新想法，请先在 Issue 中描述问题或提案。
