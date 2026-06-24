@@ -272,7 +272,7 @@ function createPopupWindow(selectedText: string): void {
   const display = screen.getDisplayNearestPoint(cursorPoint)
   const workArea = display.workArea
 
-  const width = 360
+  const width = 440
   const height = 260
 
   let x = cursorPoint.x + 16
