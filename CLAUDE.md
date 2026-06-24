@@ -131,6 +131,7 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 - Terminology glossary: users can add terms and their preferred translations in `GlossaryPanel`. The main process injects the glossary into the translation prompt so the model follows the specified terms.
 - Left sidebar navigation: `MainLayout` renders `Sidebar` plus the active content view (`TranslationPanel`, `GlossaryPanel`, `FavoritesPanel`, `HistoryPanel`, `SpeechOptimizationPanel`, or `SettingsPanel`). `useUIStore` tracks `activeView` and `sidebarCollapsed`.
 - Sidebar collapse: `Sidebar` can be collapsed to icon-only mode via the toggle button in its header. The collapsed state is stored in `useUIStore` (not persisted to disk).
+- Transcription errors (e.g., ASR provider failures or microphone permission issues) are surfaced through `useRecordingStore.transcriptionError` and rendered in `ErrorDialog` from `MainLayout`. The dialog shows the error message and a copy button so users can easily share the raw error text.
 
 ## TypeScript Configuration
 
@@ -155,6 +156,7 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 - Main layout / view switcher: `src/renderer/components/MainLayout.tsx`
 - Shortcut input component: `src/renderer/components/ShortcutInput.tsx`
 - Confirm dialog: `src/renderer/components/ConfirmDialog.tsx`
+- Error dialog: `src/renderer/components/ErrorDialog.tsx`
 - Popup panel (cross-selection): `src/renderer/components/PopupPanel.tsx`
 - Recording panel (in-app): `src/renderer/components/RecordingPanel.tsx`
 - Recording popup (external): `src/renderer/components/RecordingPopup.tsx`
