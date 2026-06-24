@@ -86,6 +86,8 @@ Three global voice hotkeys share the same recording pipeline (all gated by `sett
 
 The recognized-text result is delivered to the main process via `global-voice-result`, which branches on `globalVoiceMode`. The `RecordingPopup` shows a mode-specific title ("语音输入 / 语音编辑 / 语音直译") and an edit preview; the mode/preview are injected by the main process into the `recording-popup-state` payload (`RecordingPopupState.mode` / `.editPreview`). Edit and translate only fire when the main window is NOT focused (they target external selections/apps); plain transcribe also works inside the main window.
 
+Popup close timing depends on the mode: `transcribe` pastes the recognized text immediately, so the popup closes as soon as `global-voice-result` arrives. `translate` and `edit` need an extra LLM round-trip (translation / rewrite) before the paste, so the popup is **kept open** showing a processing state (`RecordingPopupState.processingLabel` = "翻译中..." / "改写中...") until the paste completes, then closed in the handler's `finally`. This avoids the earlier behavior where the popup vanished and the user waited with no feedback while translation ran.
+
 For each voice hotkey:
 
 - Inside the main window, the local `RecordingPanel` appears at the bottom-center (cancel button, sound-wave animation, confirm button).

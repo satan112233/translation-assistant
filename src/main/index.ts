@@ -981,13 +981,29 @@ async function translateTextForVoice(text: string): Promise<string> {
 
 ipcMain.on('global-voice-result', async (_event, text: string) => {
   console.log('[main] global voice result:', text.slice(0, 50), 'mode:', globalVoiceMode)
-  closeRecordingPopupWindow()
   globalVoiceRecording = false
 
   const mode = globalVoiceMode
   const editText = pendingEditText
   globalVoiceMode = 'transcribe'
   pendingEditText = ''
+
+  // Transcribe mode pastes the recognized text immediately, so the popup can
+  // close right away. Translate/edit modes need an extra LLM round-trip
+  // (translation / rewrite) before the paste — keep the popup open showing a
+  // processing state so the user has visual feedback during that wait, then
+  // close it once the paste completes (see finally below).
+  if (mode === 'translate' || mode === 'edit') {
+    recordingPopupWin?.webContents.send('recording-popup-state', {
+      isRecording: false,
+      isTranscribing: false,
+      recordingDuration: 0,
+      mode,
+      processingLabel: mode === 'translate' ? '翻译中...' : '改写中...',
+    })
+  } else {
+    closeRecordingPopupWindow()
+  }
 
   try {
     if (mode === 'edit') {
@@ -1014,6 +1030,11 @@ ipcMain.on('global-voice-result', async (_event, text: string) => {
     // Fall back to pasting the recognized text so the user's speech is not lost.
     if (mode === 'translate' && text.trim()) {
       await simulatePasteToForeground(text)
+    }
+  } finally {
+    // For translate/edit the popup was kept open during processing; close it now.
+    if (mode === 'translate' || mode === 'edit') {
+      closeRecordingPopupWindow()
     }
   }
 })

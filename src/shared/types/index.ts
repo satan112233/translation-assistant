@@ -115,6 +115,8 @@ export interface RecordingPopupState {
   audioLevel?: number
   mode?: 'transcribe' | 'edit' | 'translate'
   editPreview?: string
+  /** Optional label shown while the popup is in the post-recording processing state (e.g. "翻译中...", "改写中..."). */
+  processingLabel?: string
 }
 
 export const MAX_SPEECH_OPTIMIZATION_COUNT = 20
