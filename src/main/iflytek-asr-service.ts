@@ -93,6 +93,18 @@ function parseResponseText(response: IflytekResponse): string {
     .join('')
 }
 
+function getIflytekErrorMessage(code: number, originalMessage: string): string {
+  const messages: Record<number, string> = {
+    11201: '日调用额度已用完或未领取免费额度（licc failed）。请前往讯飞开放平台对应服务页面领取免费额度或购买套餐。',
+    11200: '没有调用权限（auth no license）。请确认应用已开通「大模型多语种语音识别」服务。',
+    10005: '应用授权失败（licc fail）。请检查 AppID 是否正确，以及是否已开通对应服务。',
+    10010: '接口超时，请稍后重试。',
+    10114: '请求参数错误，请检查音频格式是否为 16kHz 16bit 单声道 PCM。',
+  }
+  const extra = messages[code]
+  return extra ? `科大讯飞 ASR 错误 ${code}：${extra}` : `科大讯飞 ASR 错误 ${code}：${originalMessage}`
+}
+
 export async function transcribeWithIflytek(
   audioBase64: string,
   config: IflytekAsrConfig,
@@ -112,6 +124,8 @@ export async function transcribeWithIflytek(
   const authUrl = buildAuthUrl(apiKey, apiSecret)
   const sessionUid = crypto.randomUUID().replace(/-/g, '')
   const ln = languageToIflytekLn(language)
+
+  console.log('[iflytek-asr] connecting with appId:', appId, 'language hint:', ln || 'auto')
 
   return new Promise((resolve, reject) => {
     let fullText = ''
@@ -209,7 +223,8 @@ export async function transcribeWithIflytek(
           isClosed = true
           clearTimeout(timeout)
           ws.close()
-          reject(new Error(`科大讯飞 ASR 错误：${message.header.code} ${message.header.message}`))
+          console.error('[iflytek-asr] error response:', message.header.code, message.header.message)
+          reject(new Error(getIflytekErrorMessage(message.header.code, message.header.message)))
           return
         }
 

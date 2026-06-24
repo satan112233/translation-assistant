@@ -6,11 +6,13 @@ import { FavoritesPanel } from './FavoritesPanel'
 import { GlossaryPanel } from './GlossaryPanel'
 import { SpeechOptimizationPanel } from './SpeechOptimizationPanel'
 import { RecordingPanel } from './RecordingPanel'
+import { ErrorDialog } from './ErrorDialog'
 import { useEffect } from 'react'
 import { useUIStore, useRecordingStore } from '../stores'
 
 export function MainLayout() {
   const { activeView } = useUIStore()
+  const { transcriptionError, clearTranscriptionError } = useRecordingStore()
 
   useEffect(() => {
     const unsubscribe = window.electronAPI.onToggleVoiceRecording(() => {
@@ -31,6 +33,11 @@ export function MainLayout() {
         {activeView === 'speech-optimization' && <SpeechOptimizationPanel />}
       </div>
       <RecordingPanel />
+      <ErrorDialog
+        isOpen={!!transcriptionError}
+        message={transcriptionError || ''}
+        onClose={clearTranscriptionError}
+      />
     </div>
   )
 }

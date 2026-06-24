@@ -80,11 +80,14 @@ interface RecordingState {
   isTranscribing: boolean
   recordingDuration: number
   transcribedText: string | null
+  transcriptionError: string | null
   startRecording: (language: 'auto' | LanguageCode) => Promise<void>
   stopRecording: () => void
   cancelRecording: () => void
   toggleRecording: () => void
   setTranscribedText: (text: string | null) => void
+  setTranscriptionError: (error: string | null) => void
+  clearTranscriptionError: () => void
 }
 
 const DEFAULT_SHORTCUTS = {
@@ -463,8 +466,11 @@ export const useRecordingStore = create<RecordingState>((set) => ({
   isTranscribing: false,
   recordingDuration: 0,
   transcribedText: null,
+  transcriptionError: null,
 
   setTranscribedText: (text) => set({ transcribedText: text }),
+  setTranscriptionError: (error) => set({ transcriptionError: error }),
+  clearTranscriptionError: () => set({ transcriptionError: null }),
 
   stopRecording: () => {
     if (mediaRecorderRef?.state === 'recording') {
@@ -537,7 +543,7 @@ export const useRecordingStore = create<RecordingState>((set) => ({
           return
         }
         if (audioChunksRef.length === 0) {
-          alert('未录制到音频')
+          useRecordingStore.getState().setTranscriptionError('未录制到音频')
           return
         }
 
@@ -554,7 +560,7 @@ export const useRecordingStore = create<RecordingState>((set) => ({
           useRecordingStore.getState().setTranscribedText(text)
         } catch (err) {
           console.error('语音转文字失败:', err)
-          alert(err instanceof Error ? err.message : '语音转文字失败')
+          useRecordingStore.getState().setTranscriptionError(err instanceof Error ? err.message : '语音转文字失败')
         } finally {
           set({ isTranscribing: false })
         }
@@ -574,7 +580,7 @@ export const useRecordingStore = create<RecordingState>((set) => ({
       }, MAX_RECORDING_SECONDS * 1000)
     } catch (err) {
       console.error('无法访问麦克风:', err)
-      alert('无法访问麦克风，请检查权限设置')
+      useRecordingStore.getState().setTranscriptionError('无法访问麦克风，请检查权限设置')
     }
   },
 
