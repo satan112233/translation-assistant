@@ -161,6 +161,8 @@ npm run dev
 
 打包时 `resources/whisper/` 会通过 `extraResources` 包含在安装目录中。
 
+如开启「口语内容优化」，还需要配置 DeepSeek API Key，用于将口语化识别结果提炼为简洁书面语。
+
 ---
 
 ## ⌨️ 快捷键

@@ -20,7 +20,7 @@ There are currently no test scripts configured.
 
 The project is structured around three Electron processes:
 
-- **`src/main/`** — Electron main process. Creates the window, manages the system tray, registers global shortcuts (`Ctrl+Shift+T` and `Ctrl+Shift+C` for cross-selection), persists settings via `electron-store`, makes all LLM API requests, runs OCR via `tesseract.js`, runs offline speech recognition via `whisper.cpp` or Zhipu ASR, saves speech optimization records, and polls clipboard when clipboard monitoring is enabled.
+- **`src/main/`** — Electron main process. Creates the window, manages the system tray, registers global shortcuts (`Ctrl+Shift+T` and `Ctrl+Shift+C` for cross-selection), persists settings via `electron-store`, makes all LLM API requests, runs OCR via `tesseract.js`, runs speech recognition via Zhipu ASR, iFlytek ASR, or offline `whisper.cpp`, saves speech optimization records, and polls clipboard when clipboard monitoring is enabled.
 - **`src/preload/`** — Preload script, built as CommonJS. Exposes a typed `window.electronAPI` bridge so the renderer can invoke main-process IPC handlers safely.
 - **`src/renderer/`** — React application. Manages UI state with Zustand and renders the translation interface.
 - **`src/shared/`** — Shared TypeScript types used by both main and renderer.
@@ -34,7 +34,7 @@ The renderer communicates with the main process through these channels:
 - `translate` — Send translation parameters to the main process, which calls a single LLM and returns the result.
 - `translate-multi` — Send parameters for multiple configured providers; the main process calls them in parallel and returns per-provider results.
 - `ocr-image` — Send a base64 image to the main process for OCR text recognition.
-- `transcribe-audio` — Send a base64 WAV audio to the main process for speech-to-text via Zhipu ASR or whisper.cpp.
+- `transcribe-audio` — Send a base64 WAV audio to the main process for speech-to-text via Zhipu ASR, iFlytek ASR, or whisper.cpp.
 - `global-voice-result` — Sent by the hidden `voiceWin` to the main process with the final transcribed (and optionally optimized) text; the main process closes the recording popup and pastes the text into the original foreground window.
 - `stop-global-recording-manual` / `cancel-global-voice` — Sent by `RecordingPopup` when the user clicks confirm/cancel; the main process forwards `start-global-recording` / `stop-global-recording` / `cancel-global-recording` to `voiceWin`.
 - `recording-state` / `recording-popup-state` / `recording-popup-ready` — State synchronization between `voiceWin`, the main process, and `recordingPopupWin`.
@@ -70,7 +70,7 @@ Settings are stored with `electron-store` in the main process. On first load, th
 - The worker loads `chi_sim+eng+jpn` language packs from CDN on first run (~5-6MB). Subsequent OCR requests reuse the worker.
 - The `ocr-image` IPC handler receives a base64 image and returns recognized text.
 
-### Voice Input (whisper.cpp / Zhipu ASR / DeepSeek optimization)
+### Voice Input (whisper.cpp / Zhipu ASR / iFlytek ASR / DeepSeek optimization)
 
 The voice input system uses two renderer windows when invoked outside the main app:
 
@@ -85,6 +85,7 @@ Pressing the configured **voice input shortcut** (default `Ctrl+Alt+V`) toggles 
 `settings.voiceInputProvider` selects the recognition backend:
 
 - `'zhipu'` (default when Zhipu API key is configured): sends audio to Zhipu AI's `glm-asr-2512` ASR endpoint.
+- `'iflytek'`: sends audio to iFlytek's Spark multilingual ASR WebSocket endpoint (`wss://iat.cn-huabei-1.xf-yun.com/v1`). Supports Chinese, English, and Japanese. Requires `appId`, `apiKey`, and `apiSecret` from the iFlytek console.
 - `'local'`: the main process writes the WAV to a temp file, calls `whisper-cli.exe` from `resources/whisper/` (packaged via `extraResources`), and returns the transcribed text.
 
 When `settings.voiceInputOptimize` is enabled, the raw ASR text is sent to DeepSeek via `src/main/utils/speech-optimizer.ts` to remove filler words, repetitions, and oral clutter, producing concise written text before it is returned to the renderer. The pair `{ rawText, optimizedText }` is saved to `store.get('speechOptimizations')` (max 20 records) so users can review the before/after in the `SpeechOptimizationPanel` accessible from the left sidebar.
@@ -160,6 +161,8 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 - Speech optimization panel: `src/renderer/components/SpeechOptimizationPanel.tsx`
 - Voice recorder: `src/renderer/components/VoiceRecorder.tsx`
 - Whisper service: `src/main/whisper-service.ts`
+- Zhipu ASR service: `src/main/zhipu-asr-service.ts`
+- iFlytek ASR service: `src/main/iflytek-asr-service.ts`
 - History panel: `src/renderer/components/HistoryPanel.tsx`
 - Favorites panel: `src/renderer/components/FavoritesPanel.tsx`
 - Glossary / terminology panel: `src/renderer/components/GlossaryPanel.tsx`
