@@ -1,4 +1,4 @@
-import { Languages, BookOpen, Star, History, Settings, ChevronLeft, ChevronRight, Mic } from 'lucide-react'
+import { Languages, BookOpen, Star, History, Settings, ChevronLeft, ChevronRight, Mic, SpellCheck } from 'lucide-react'
 import { useUIStore, type ActiveView } from '../stores'
 
 interface NavItem {
@@ -10,6 +10,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { id: 'translate', label: '翻译', icon: Languages },
   { id: 'glossary', label: '术语库', icon: BookOpen },
+  { id: 'voice-dictionary', label: '语音词典', icon: SpellCheck },
   { id: 'favorites', label: '收藏夹', icon: Star },
   { id: 'history', label: '翻译历史', icon: History },
   { id: 'speech-optimization', label: '语音优化记录', icon: Mic },

@@ -4,6 +4,7 @@ import { SettingsPanel } from './SettingsModal'
 import { HistoryPanel } from './HistoryPanel'
 import { FavoritesPanel } from './FavoritesPanel'
 import { GlossaryPanel } from './GlossaryPanel'
+import { VoiceDictionaryPanel } from './VoiceDictionaryPanel'
 import { SpeechOptimizationPanel } from './SpeechOptimizationPanel'
 import { RecordingPanel } from './RecordingPanel'
 import { ErrorDialog } from './ErrorDialog'
@@ -30,6 +31,7 @@ export function MainLayout() {
         {activeView === 'history' && <HistoryPanel />}
         {activeView === 'favorites' && <FavoritesPanel />}
         {activeView === 'glossary' && <GlossaryPanel />}
+        {activeView === 'voice-dictionary' && <VoiceDictionaryPanel />}
         {activeView === 'speech-optimization' && <SpeechOptimizationPanel />}
       </div>
       <RecordingPanel />

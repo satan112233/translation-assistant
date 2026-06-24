@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AppSettings, FavoriteRecord, GlossaryEntry, HistoryRecord, LanguageCode, ProviderTranslationResult, SpeechOptimizationRecord, TranslationResult } from '../../shared/types'
+import type { AppSettings, FavoriteRecord, GlossaryEntry, HistoryRecord, LanguageCode, ProviderTranslationResult, SpeechOptimizationRecord, TranslationResult, VoiceDictionaryEntry } from '../../shared/types'
 import { MAX_HISTORY_COUNT, MAX_SPEECH_OPTIMIZATION_COUNT } from '../../shared/types'
 import { DEFAULT_PROVIDER_CONFIGS, PROVIDER_LABELS } from '../../main/providers'
 
@@ -57,6 +57,16 @@ interface GlossaryState {
   updateGlossaryEntry: (id: string, entry: Partial<GlossaryEntry>) => Promise<void>
 }
 
+interface VoiceDictionaryState {
+  voiceDictionary: VoiceDictionaryEntry[]
+  isLoaded: boolean
+  loadVoiceDictionary: () => Promise<void>
+  saveVoiceDictionary: (voiceDictionary: VoiceDictionaryEntry[]) => Promise<void>
+  addVoiceDictionaryEntry: (entry: VoiceDictionaryEntry) => Promise<void>
+  deleteVoiceDictionaryEntry: (id: string) => Promise<void>
+  updateVoiceDictionaryEntry: (id: string, entry: Partial<VoiceDictionaryEntry>) => Promise<void>
+}
+
 interface SpeechOptimizationState {
   records: SpeechOptimizationRecord[]
   isLoaded: boolean
@@ -66,7 +76,7 @@ interface SpeechOptimizationState {
   clearRecords: () => Promise<void>
 }
 
-export type ActiveView = 'translate' | 'glossary' | 'favorites' | 'history' | 'speech-optimization' | 'settings'
+export type ActiveView = 'translate' | 'glossary' | 'voice-dictionary' | 'favorites' | 'history' | 'speech-optimization' | 'settings'
 
 interface UIState {
   activeView: ActiveView
@@ -115,6 +125,7 @@ const defaultSettings: AppSettings = {
   shortcuts: { ...DEFAULT_SHORTCUTS },
   comparisonMode: false,
   glossary: [],
+  voiceDictionary: [],
   popupPinned: false,
   autoCopyResult: false,
   voiceInputEnabled: true,
@@ -152,6 +163,7 @@ function mergeWithDefaults(settings: Partial<AppSettings>): AppSettings {
     },
     comparisonMode: settings.comparisonMode ?? defaultSettings.comparisonMode,
     glossary: settings.glossary ?? defaultSettings.glossary,
+    voiceDictionary: settings.voiceDictionary ?? defaultSettings.voiceDictionary,
     popupPinned: settings.popupPinned ?? defaultSettings.popupPinned,
     autoCopyResult: settings.autoCopyResult ?? defaultSettings.autoCopyResult,
     voiceInputEnabled: settings.voiceInputEnabled ?? defaultSettings.voiceInputEnabled,
@@ -336,6 +348,57 @@ export const useGlossaryStore = create<GlossaryState>((set) => ({
       await saveGlossary(newGlossary)
     } catch (error) {
       console.error('Failed to update glossary entry:', error)
+    }
+  },
+}))
+
+export const useVoiceDictionaryStore = create<VoiceDictionaryState>((set) => ({
+  voiceDictionary: [],
+  isLoaded: false,
+  loadVoiceDictionary: async () => {
+    try {
+      const raw = await window.electronAPI.getVoiceDictionary()
+      set({ voiceDictionary: raw as VoiceDictionaryEntry[], isLoaded: true })
+    } catch (error) {
+      console.error('Failed to load voice dictionary:', error)
+      set({ voiceDictionary: [], isLoaded: true })
+    }
+  },
+  saveVoiceDictionary: async (voiceDictionary) => {
+    try {
+      await window.electronAPI.setVoiceDictionary(voiceDictionary)
+      set({ voiceDictionary })
+    } catch (error) {
+      console.error('Failed to save voice dictionary:', error)
+    }
+  },
+  addVoiceDictionaryEntry: async (entry) => {
+    try {
+      const { voiceDictionary, saveVoiceDictionary } = useVoiceDictionaryStore.getState()
+      const newDictionary = [entry, ...voiceDictionary.filter((item) => item.id !== entry.id)]
+      await saveVoiceDictionary(newDictionary)
+    } catch (error) {
+      console.error('Failed to add voice dictionary entry:', error)
+    }
+  },
+  deleteVoiceDictionaryEntry: async (id) => {
+    try {
+      const { voiceDictionary, saveVoiceDictionary } = useVoiceDictionaryStore.getState()
+      const newDictionary = voiceDictionary.filter((item) => item.id !== id)
+      await saveVoiceDictionary(newDictionary)
+    } catch (error) {
+      console.error('Failed to delete voice dictionary entry:', error)
+    }
+  },
+  updateVoiceDictionaryEntry: async (id, entry) => {
+    try {
+      const { voiceDictionary, saveVoiceDictionary } = useVoiceDictionaryStore.getState()
+      const newDictionary = voiceDictionary.map((item) =>
+        item.id === id ? { ...item, ...entry } : item
+      )
+      await saveVoiceDictionary(newDictionary)
+    } catch (error) {
+      console.error('Failed to update voice dictionary entry:', error)
     }
   },
 }))

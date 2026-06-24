@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
-import type { FavoriteRecord, GlossaryEntry, HistoryRecord, MultiTranslateRequest, MultiTranslateResult, ReadTextFileResult, SaveTextFileRequest, SaveTextFileResult, SpeechOptimizationRecord, TranscribeAudioRequest, TranscribeAudioResult, TranslateRequest, TranslationResult, RecordingPopupState } from '../shared/types'
+import type { FavoriteRecord, GlossaryEntry, HistoryRecord, MultiTranslateRequest, MultiTranslateResult, ReadTextFileResult, SaveTextFileRequest, SaveTextFileResult, SpeechOptimizationRecord, TranscribeAudioRequest, TranscribeAudioResult, TranslateRequest, TranslationResult, RecordingPopupState, VoiceDictionaryEntry } from '../shared/types'
 
 export interface ElectronAPI {
   getSettings: () => Promise<unknown>
@@ -13,6 +13,8 @@ export interface ElectronAPI {
   saveTextFile: (request: SaveTextFileRequest) => Promise<SaveTextFileResult>
   getGlossary: () => Promise<GlossaryEntry[]>
   setGlossary: (glossary: GlossaryEntry[]) => Promise<boolean>
+  getVoiceDictionary: () => Promise<VoiceDictionaryEntry[]>
+  setVoiceDictionary: (voiceDictionary: VoiceDictionaryEntry[]) => Promise<boolean>
   getHistory: () => Promise<HistoryRecord[]>
   addHistory: (record: HistoryRecord) => Promise<boolean>
   deleteHistoryItem: (id: string) => Promise<boolean>
@@ -53,6 +55,8 @@ const api: ElectronAPI = {
   saveTextFile: (request) => ipcRenderer.invoke('save-text-file', request),
   getGlossary: () => ipcRenderer.invoke('get-glossary'),
   setGlossary: (glossary) => ipcRenderer.invoke('set-glossary', glossary),
+  getVoiceDictionary: () => ipcRenderer.invoke('get-voice-dictionary'),
+  setVoiceDictionary: (voiceDictionary) => ipcRenderer.invoke('set-voice-dictionary', voiceDictionary),
   getHistory: () => ipcRenderer.invoke('get-history'),
   addHistory: (record) => ipcRenderer.invoke('add-history', record),
   deleteHistoryItem: (id) => ipcRenderer.invoke('delete-history-item', id),

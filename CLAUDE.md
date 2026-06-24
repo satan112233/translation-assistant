@@ -31,6 +31,7 @@ The renderer communicates with the main process through these channels:
 
 - `get-settings` / `set-settings` — Load and persist app settings (API keys, provider config, window bounds, always-on-top state, theme, popup target language, clipboard monitor, shortcuts, comparison mode, glossary, popup pinned state, auto-copy result, voice input enabled, voice input language).
 - `get-glossary` / `set-glossary` — Load and persist the terminology glossary used to guide translations.
+- `get-voice-dictionary` / `set-voice-dictionary` — Load and persist the personal voice dictionary used to correct ASR mis-recognitions of proper nouns during speech optimization.
 - `translate` — Send translation parameters to the main process, which calls a single LLM and returns the result.
 - `translate-multi` — Send parameters for multiple configured providers; the main process calls them in parallel and returns per-provider results.
 - `ocr-image` — Send a base64 image to the main process for OCR text recognition.
@@ -88,7 +89,9 @@ Pressing the configured **voice input shortcut** (default `Ctrl+Alt+V`) toggles 
 - `'iflytek'`: sends audio to iFlytek's Chinese-English ASR WebSocket endpoint (`wss://iat.xf-yun.com/v1`). Supports Chinese and English. Requires `appId`, `apiKey`, and `apiSecret` from the iFlytek console.
 - `'local'`: the main process writes the WAV to a temp file, calls `whisper-cli.exe` from `resources/whisper/` (packaged via `extraResources`), and returns the transcribed text.
 
-When `settings.voiceInputOptimize` is enabled, the raw ASR text is sent to DeepSeek via `src/main/utils/speech-optimizer.ts` to remove filler words, repetitions, and oral clutter, producing concise written text before it is returned to the renderer. The optimizer prompt explicitly handles **self-correction** (when the speaker changes their mind mid-sentence, e.g. "三点……不对，是十点", only the final intent is kept). `optimizeSpeech(text, config, glossary?)` also accepts the terminology glossary (`settings.glossary`): the glossary terms are injected as a "correct spelling reference" so the optimizer fixes ASR mis-recognitions of proper nouns, brand names, and technical terms. The pair `{ rawText, optimizedText }` is saved to `store.get('speechOptimizations')` (max 20 records) so users can review the before/after in the `SpeechOptimizationPanel` accessible from the left sidebar.
+When `settings.voiceInputOptimize` is enabled, the raw ASR text is sent to DeepSeek via `src/main/utils/speech-optimizer.ts` to remove filler words, repetitions, and oral clutter, producing concise written text before it is returned to the renderer. The optimizer prompt explicitly handles **self-correction** (when the speaker changes their mind mid-sentence, e.g. "三点……不对，是十点", only the final intent is kept), **punctuation voice commands** (spoken "逗号/句号/换行/新段落" become real punctuation and line breaks), and **auto-formatting** (enumerated points become a list, distinct topics are split into paragraphs). `optimizeSpeech(text, config, glossary?, dictionary?)` also accepts the terminology glossary (`settings.glossary`) and the dedicated voice dictionary (`settings.voiceDictionary`): their words are injected as a "correct spelling reference" so the optimizer fixes ASR mis-recognitions of proper nouns, brand names, and technical terms. The pair `{ rawText, optimizedText }` is saved to `store.get('speechOptimizations')` (max 20 records) so users can review the before/after in the `SpeechOptimizationPanel` accessible from the left sidebar.
+
+The **voice dictionary** (`settings.voiceDictionary`, type `VoiceDictionaryEntry[]` with `{ id, word, note? }`) is a personal vocabulary list dedicated to ASR correction (people's names, acronyms, project codenames) — distinct from the translation glossary. It is managed in `VoiceDictionaryPanel` (left sidebar, "语音词典") and persisted via the `get-voice-dictionary` / `set-voice-dictionary` IPC channels.
 
 The `ggml-base-q8_0.gguf` model (~75MB) is downloaded on first use for local mode to `app.getPath('userData')/whisper/models/`.
 
@@ -129,7 +132,7 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 - Customizable global shortcuts: `SettingsModal` exposes inputs for the two global shortcuts. Values are converted to Electron accelerator strings and persisted in `settings.shortcuts`; the main process re-registers shortcuts whenever they change.
 - Multi-model comparison translation: when `settings.comparisonMode` is enabled and at least two providers have API keys, the store calls `translate-multi`. The main process uses `Promise.allSettled()` so a failure in one provider does not affect the others.
 - Terminology glossary: users can add terms and their preferred translations in `GlossaryPanel`. The main process injects the glossary into the translation prompt so the model follows the specified terms.
-- Left sidebar navigation: `MainLayout` renders `Sidebar` plus the active content view (`TranslationPanel`, `GlossaryPanel`, `FavoritesPanel`, `HistoryPanel`, `SpeechOptimizationPanel`, or `SettingsPanel`). `useUIStore` tracks `activeView` and `sidebarCollapsed`.
+- Left sidebar navigation: `MainLayout` renders `Sidebar` plus the active content view (`TranslationPanel`, `GlossaryPanel`, `VoiceDictionaryPanel`, `FavoritesPanel`, `HistoryPanel`, `SpeechOptimizationPanel`, or `SettingsPanel`). `useUIStore` tracks `activeView` and `sidebarCollapsed`.
 - Sidebar collapse: `Sidebar` can be collapsed to icon-only mode via the toggle button in its header. The collapsed state is stored in `useUIStore` (not persisted to disk).
 - Transcription errors (e.g., ASR provider failures or microphone permission issues) are surfaced through `useRecordingStore.transcriptionError` and rendered in `ErrorDialog` from `MainLayout`. The dialog shows the error message and a copy button so users can easily share the raw error text.
 
@@ -168,6 +171,7 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 - History panel: `src/renderer/components/HistoryPanel.tsx`
 - Favorites panel: `src/renderer/components/FavoritesPanel.tsx`
 - Glossary / terminology panel: `src/renderer/components/GlossaryPanel.tsx`
+- Voice dictionary panel: `src/renderer/components/VoiceDictionaryPanel.tsx`
 
 ## Packaging
 

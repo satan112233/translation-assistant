@@ -10,7 +10,7 @@ import { transcribeWithZhipu } from './zhipu-asr-service'
 import { transcribeWithIflytek } from './iflytek-asr-service'
 import { optimizeSpeech } from './utils/speech-optimizer'
 import { MAX_HISTORY_COUNT, MAX_SPEECH_OPTIMIZATION_COUNT } from '../shared/types'
-import type { GlossaryEntry, MultiTranslateRequest, MultiTranslateResult, TranslateRequest, TranscribeAudioRequest, SpeechOptimizationRecord } from '../shared/types'
+import type { GlossaryEntry, MultiTranslateRequest, MultiTranslateResult, TranslateRequest, TranscribeAudioRequest, SpeechOptimizationRecord, VoiceDictionaryEntry } from '../shared/types'
 import { createWorker, type Worker } from 'tesseract.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -83,6 +83,7 @@ const store = new Store<{
     shortcuts: { toggleWindow: string; crossSelection: string }
     comparisonMode: boolean
     glossary: GlossaryEntry[]
+    voiceDictionary: VoiceDictionaryEntry[]
     popupPinned: boolean
     autoCopyResult: boolean
     voiceInputEnabled: boolean
@@ -154,6 +155,7 @@ const store = new Store<{
       shortcuts: DEFAULT_SHORTCUTS,
       comparisonMode: false,
       glossary: [],
+      voiceDictionary: [],
       popupPinned: false,
       autoCopyResult: false,
       voiceInputEnabled: true,
@@ -799,6 +801,20 @@ ipcMain.handle('set-glossary', (_event, glossary: GlossaryEntry[]) => {
   }
 })
 
+ipcMain.handle('get-voice-dictionary', () => {
+  return store.get('settings').voiceDictionary || []
+})
+
+ipcMain.handle('set-voice-dictionary', (_event, voiceDictionary: VoiceDictionaryEntry[]) => {
+  try {
+    store.set('settings.voiceDictionary', voiceDictionary)
+    return true
+  } catch (error) {
+    console.error('[main] failed to set voice dictionary:', error)
+    throw error
+  }
+})
+
 ipcMain.handle('get-history', () => {
   return store.get('history')
 })
@@ -1107,7 +1123,7 @@ ipcMain.handle('transcribe-audio', async (_event, request: TranscribeAudioReques
       if (!deepseekConfig?.apiKey?.trim()) {
         throw new Error('未配置 DeepSeek API Key，无法启用口语内容优化')
       }
-      const optimizedText = await optimizeSpeech(rawText, deepseekConfig, settings.glossary)
+      const optimizedText = await optimizeSpeech(rawText, deepseekConfig, settings.glossary, settings.voiceDictionary)
       console.log('[main] optimized text:', optimizedText.slice(0, 50))
 
       if (!isMeaningfulSpeechText(optimizedText)) {

@@ -33,6 +33,12 @@ export interface GlossaryEntry {
   note?: string
 }
 
+export interface VoiceDictionaryEntry {
+  id: string
+  word: string
+  note?: string
+}
+
 export interface AppSettings {
   defaultProvider: string
   providers: Record<string, ProviderConfig>
@@ -44,6 +50,7 @@ export interface AppSettings {
   shortcuts: ShortcutSettings
   comparisonMode: boolean
   glossary: GlossaryEntry[]
+  voiceDictionary: VoiceDictionaryEntry[]
   popupPinned: boolean
   autoCopyResult: boolean
   voiceInputEnabled: boolean
