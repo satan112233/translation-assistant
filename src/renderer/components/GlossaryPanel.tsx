@@ -94,6 +94,12 @@ export function GlossaryPanel() {
       </div>
 
       <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+        <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">
+          为专业术语、品牌名、行业黑话指定固定译法。翻译时会自动告知模型按你设定的译法翻译这些词，保证术语统一、贴合你的习惯。例如设定「云原生 → Cloud Native」，之后翻译相关内容都会沿用此译法。
+        </p>
+      </div>
+
+      <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
         <div className="relative">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <input
