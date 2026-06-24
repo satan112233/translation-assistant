@@ -13,8 +13,8 @@ const THEME_OPTIONS = [
 ] as const
 
 const DEFAULT_SHORTCUTS = {
-  toggleWindow: 'CommandOrControl+Shift+T',
-  crossSelection: 'CommandOrControl+Shift+C',
+  toggleWindow: 'CommandOrControl+Alt+T',
+  crossSelection: 'CommandOrControl+Alt+C',
 }
 
 export function SettingsPanel() {

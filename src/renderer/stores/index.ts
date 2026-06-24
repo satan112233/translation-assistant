@@ -101,8 +101,8 @@ interface RecordingState {
 }
 
 const DEFAULT_SHORTCUTS = {
-  toggleWindow: 'CommandOrControl+Shift+T',
-  crossSelection: 'CommandOrControl+Shift+C',
+  toggleWindow: 'CommandOrControl+Alt+T',
+  crossSelection: 'CommandOrControl+Alt+C',
 }
 
 const defaultSettings: AppSettings = {

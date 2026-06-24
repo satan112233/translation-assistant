@@ -72,8 +72,8 @@ process.env.VITE_PUBLIC = devServerUrl
 
 // Initialize secure store for API keys, settings, and history
 const DEFAULT_SHORTCUTS = {
-  toggleWindow: 'CommandOrControl+Shift+T',
-  crossSelection: 'CommandOrControl+Shift+C',
+  toggleWindow: 'CommandOrControl+Alt+T',
+  crossSelection: 'CommandOrControl+Alt+C',
 }
 
 const store = new Store<{
@@ -119,6 +119,7 @@ const store = new Store<{
     note?: string
   }>
   speechOptimizations: SpeechOptimizationRecord[]
+  shortcutsResetToAlt?: boolean
 }>({
   defaults: {
     settings: {
@@ -1262,8 +1263,18 @@ ipcMain.handle('transcribe-audio', async (_event, request: TranscribeAudioReques
   }
 })
 
+function migrateShortcuts(): void {
+  // One-time reset: drop any previously-saved shortcuts and adopt the new
+  // Ctrl+Alt defaults. Runs once, so the user can still customize afterwards.
+  if (store.get('shortcutsResetToAlt')) return
+  store.set('settings.shortcuts', DEFAULT_SHORTCUTS)
+  store.set('shortcutsResetToAlt', true)
+  console.log('[main] reset shortcuts to Ctrl+Alt defaults:', DEFAULT_SHORTCUTS)
+}
+
 app.whenReady().then(async () => {
   console.log(`[main] app ready, version ${appVersion}`)
+  migrateShortcuts()
   createWindow()
   createTray()
   registerGlobalShortcut()
