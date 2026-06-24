@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Mic, Trash2, Clock, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { Sparkles, Trash2, Clock, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useSpeechOptimizationStore, useTranslationStore, useUIStore } from '../stores'
 import { ConfirmDialog } from './ConfirmDialog'
 import { MAX_SPEECH_OPTIMIZATION_COUNT } from '../../shared/types'
@@ -49,7 +49,7 @@ export function SpeechOptimizationPanel({ onClose }: { onClose?: () => void }) {
     <div className="flex flex-col h-full bg-white dark:bg-gray-800">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2">
-          <Mic size={18} className="text-blue-600 dark:text-blue-400" />
+          <Sparkles size={18} className="text-blue-600 dark:text-blue-400" />
           <span className="text-sm font-medium text-gray-800 dark:text-gray-100">语音优化记录</span>
           <span className="text-xs text-gray-400 dark:text-gray-500">
             ({records.length}/{MAX_SPEECH_OPTIMIZATION_COUNT})
@@ -96,7 +96,7 @@ export function SpeechOptimizationPanel({ onClose }: { onClose?: () => void }) {
           </div>
         ) : records.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500">
-            <Mic size={32} className="mb-2 opacity-40" />
+            <Sparkles size={32} className="mb-2 opacity-40" />
             <span className="text-sm">暂无语音优化记录</span>
             <span className="text-xs mt-1">开启口语内容优化后录音即可生成记录</span>
           </div>

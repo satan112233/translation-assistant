@@ -1,4 +1,4 @@
-import { Minus, X, Pin, PinOff, Sun, Moon, History, Star, Mic } from 'lucide-react'
+import { Minus, X, Pin, PinOff, Sun, Moon, History, Star, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useSettingsStore, useUIStore } from '../stores'
 
@@ -69,7 +69,7 @@ export function TitleBar() {
           }`}
           title="语音优化记录"
         >
-          <Mic size={15} />
+          <Sparkles size={15} />
         </button>
 
         <div className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
