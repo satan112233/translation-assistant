@@ -49,8 +49,8 @@
 
 ### 截图 OCR 翻译
 - 输入框 `Ctrl+V` 粘贴图片自动 OCR 识别并翻译
-- tesseract.js worker 应用启动时预创建
-- 首次需从 CDN 下载语言包，后续复用
+- 使用本地 **RapidOcrOnnx**（基于 PaddleOCR PP-OCRv3）识别图片文字
+- 支持中文、英文混排识别，识别结果带标点符号
 
 ### 文档翻译
 - 支持拖拽 `.txt`、`.md` 文件到输入区
