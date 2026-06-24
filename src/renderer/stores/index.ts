@@ -622,7 +622,7 @@ export const useRecordingStore = create<RecordingState>((set) => ({
           const level = Math.pow(raw, 0.6)
           // Fast-ish attack, slow release: bars rise to speech but fade down
           // gently instead of snapping back to flat on silence.
-          const coeff = level > smoothed ? 0.22 : 0.05
+          const coeff = level > smoothed ? 0.18 : 0.03
           smoothed = smoothed * (1 - coeff) + level * coeff
           if (smoothed < 0.001) smoothed = 0
           set({ audioLevel: smoothed })

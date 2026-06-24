@@ -32,8 +32,11 @@ export function SoundWave({ level }: { level: number }) {
 
     const loop = (now: number) => {
       const t = (now - start) / 1000
-      // Local easing so amplitude changes glide instead of stepping.
-      smoothLevel += (levelRef.current - smoothLevel) * 0.12
+      // Fast attack, slow release: amplitude rises quickly with the voice but
+      // fades out gently when the user stops, so bars don't drop abruptly.
+      const target = levelRef.current
+      const coeff = target > smoothLevel ? 0.2 : 0.035
+      smoothLevel += (target - smoothLevel) * coeff
       const amp = smoothLevel < 0.001 ? 0 : smoothLevel
 
       for (let i = 0; i < BAR_COUNT; i++) {
