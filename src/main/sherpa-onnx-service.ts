@@ -6,7 +6,7 @@ import path from 'node:path'
 import * as tar from 'tar'
 import type { TranscribeAudioRequest, TranscribeAudioResult } from '../shared/types'
 
-const MODEL_NAME = 'sherpa-onnx-paraformer-zh-small-2024-03-09'
+const MODEL_NAME = 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17'
 const MODEL_ARCHIVE = `${MODEL_NAME}.tar.bz2`
 const MODEL_URLS = [
   `https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/${MODEL_ARCHIVE}`,
@@ -180,16 +180,16 @@ async function ensureModel(): Promise<string> {
   )
 }
 
-function findModelFiles(modelDir: string): { tokens: string; paraformer: string } {
+function findModelFiles(modelDir: string): { tokens: string; senseVoiceModel: string } {
   const files = readdirSync(modelDir)
   const tokens = files.find((f) => f === 'tokens.txt')
-  const paraformer = files.find((f) => f.startsWith('model') && f.endsWith('.onnx'))
-  if (!tokens || !paraformer) {
+  const senseVoiceModel = files.find((f) => f.startsWith('model') && f.endsWith('.onnx'))
+  if (!tokens || !senseVoiceModel) {
     throw new Error(`模型目录 ${modelDir} 中缺少 tokens.txt 或 model*.onnx 文件`)
   }
   return {
     tokens: path.join(modelDir, tokens),
-    paraformer: path.join(modelDir, paraformer),
+    senseVoiceModel: path.join(modelDir, senseVoiceModel),
   }
 }
 
@@ -271,7 +271,7 @@ export async function transcribeAudio(request: TranscribeAudioRequest): Promise<
   }
 
   const modelDir = await ensureModel()
-  const { tokens, paraformer } = findModelFiles(modelDir)
+  const { tokens, senseVoiceModel } = findModelFiles(modelDir)
 
   const tempDir = app.getPath('temp')
   const timestamp = Date.now()
@@ -282,8 +282,8 @@ export async function transcribeAudio(request: TranscribeAudioRequest): Promise<
 
     const args = [
       `--tokens=${tokens}`,
-      `--paraformer=${paraformer}`,
-      `--model-type=paraformer`,
+      `--sense-voice-model=${senseVoiceModel}`,
+      `--sense-voice-use-itn=1`,
       `--num-threads=4`,
       `--debug=0`,
       wavPath,
