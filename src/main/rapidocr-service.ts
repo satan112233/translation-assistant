@@ -37,7 +37,14 @@ function parseResultFile(resultPath: string): string {
   const marker = '=====End detect====='
   const idx = content.indexOf(marker)
   if (idx === -1) return ''
-  return content.slice(idx + marker.length).trim()
+  const tail = content.slice(idx + marker.length)
+  // RapidOcrOnnx prints a "FullDetectTime(...)" summary line right after the
+  // end marker, before the actual recognized text lines. Drop it.
+  const lines = tail
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith('FullDetectTime('))
+  return lines.join('\n')
 }
 
 function runRapidOcr(exePath: string, args: string[]): Promise<string> {
