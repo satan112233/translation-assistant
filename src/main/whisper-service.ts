@@ -7,8 +7,8 @@ import type { LanguageCode, TranscribeAudioRequest, TranscribeAudioResult } from
 
 const MODEL_NAME = 'ggml-base-q8_0.gguf'
 const MODEL_URLS = [
-  `https://huggingface.co/ggml-org/whisper.cpp/resolve/main/${MODEL_NAME}`,
-  `https://hf-mirror.com/ggml-org/whisper.cpp/resolve/main/${MODEL_NAME}`,
+  `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${MODEL_NAME}`,
+  `https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/${MODEL_NAME}`,
 ]
 const WHISPER_TIMEOUT_MS = 30_000
 
