@@ -14,7 +14,7 @@ function SoundWave({ level }: { level: number }) {
         return (
           <div
             key={i}
-            className="w-[3px] bg-blue-500 dark:bg-blue-400 rounded-full transition-[height] duration-150 ease-out"
+            className="w-[3px] bg-blue-500 dark:bg-blue-400 rounded-full transition-[height] duration-300 ease-out"
             style={{ height: `${height}px` }}
           />
         )
