@@ -616,8 +616,10 @@ export const useRecordingStore = create<RecordingState>((set) => ({
             sumSquares += v * v
           }
           const rms = Math.sqrt(sumSquares / buffer.length)
-          // Noise floor + gain so quiet background reads as 0 and speech fills up.
-          const level = rms < 0.02 ? 0 : Math.min(1, (rms - 0.02) * 4)
+          // Noise floor + gain, then a perceptual curve (pow < 1) so normal
+          // speech reads as a full waveform instead of a few short bars.
+          const raw = rms < 0.015 ? 0 : Math.min(1, (rms - 0.015) * 6)
+          const level = Math.pow(raw, 0.6)
           // Fast-ish attack, slow release: bars rise to speech but fade down
           // gently instead of snapping back to flat on silence.
           const coeff = level > smoothed ? 0.22 : 0.05
