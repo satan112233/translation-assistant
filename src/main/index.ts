@@ -7,6 +7,7 @@ import Store from 'electron-store'
 import { createProvider } from './providers'
 import { terminateActiveWhisperProcess, transcribeAudio } from './whisper-service'
 import { transcribeWithZhipu } from './zhipu-asr-service'
+import { transcribeWithIflytek } from './iflytek-asr-service'
 import { optimizeSpeech } from './utils/speech-optimizer'
 import { MAX_HISTORY_COUNT, MAX_SPEECH_OPTIMIZATION_COUNT } from '../shared/types'
 import type { GlossaryEntry, MultiTranslateRequest, MultiTranslateResult, TranslateRequest, TranscribeAudioRequest, SpeechOptimizationRecord } from '../shared/types'
@@ -73,7 +74,7 @@ const DEFAULT_SHORTCUTS = {
 const store = new Store<{
   settings: {
     defaultProvider: string
-    providers: Record<string, { apiKey: string; baseUrl: string; model: string }>
+    providers: Record<string, { apiKey: string; baseUrl: string; model: string; appId?: string; apiSecret?: string }>
     windowBounds: { x?: number; y?: number; width: number; height: number }
     alwaysOnTop: boolean
     theme: 'light' | 'dark' | 'system'
@@ -85,7 +86,7 @@ const store = new Store<{
     popupPinned: boolean
     autoCopyResult: boolean
     voiceInputEnabled: boolean
-    voiceInputProvider: 'local' | 'zhipu'
+    voiceInputProvider: 'local' | 'zhipu' | 'iflytek'
     voiceInputOptimize: boolean
     voiceInputLanguage: 'auto' | 'zh' | 'en' | 'ja'
     voiceInputShortcut: string
@@ -136,6 +137,13 @@ const store = new Store<{
           apiKey: '',
           baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
           model: 'glm-4-flash',
+        },
+        iflytek: {
+          apiKey: '',
+          baseUrl: '',
+          model: '',
+          appId: '',
+          apiSecret: '',
         },
       },
       windowBounds: { width: 900, height: 640 },
@@ -1067,6 +1075,21 @@ ipcMain.handle('transcribe-audio', async (_event, request: TranscribeAudioReques
       const apiKey = settings.providers?.zhipu?.apiKey
       rawText = await transcribeWithZhipu(request.audioBase64, apiKey || '')
       console.log('[main] Zhipu ASR result:', rawText.slice(0, 50))
+    } else if (provider === 'iflytek') {
+      console.log('[main] starting iFlytek ASR transcription...')
+      const iflytek = settings.providers?.iflytek
+      rawText = await transcribeWithIflytek(
+        request.audioBase64,
+        {
+          apiKey: iflytek?.apiKey || '',
+          baseUrl: '',
+          model: '',
+          appId: iflytek?.appId || '',
+          apiSecret: iflytek?.apiSecret || '',
+        },
+        request.language
+      )
+      console.log('[main] iFlytek ASR result:', rawText.slice(0, 50))
     } else {
       console.log('[main] starting whisper.cpp transcription...')
       const result = await transcribeAudio(request)

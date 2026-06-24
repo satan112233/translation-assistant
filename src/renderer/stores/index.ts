@@ -94,7 +94,16 @@ const DEFAULT_SHORTCUTS = {
 
 const defaultSettings: AppSettings = {
   defaultProvider: 'deepseek',
-  providers: { ...DEFAULT_PROVIDER_CONFIGS },
+  providers: {
+    ...DEFAULT_PROVIDER_CONFIGS,
+    iflytek: {
+      apiKey: '',
+      baseUrl: '',
+      model: '',
+      appId: '',
+      apiSecret: '',
+    },
+  },
   windowBounds: { width: 900, height: 640 },
   alwaysOnTop: false,
   theme: 'light',
@@ -145,7 +154,11 @@ function mergeWithDefaults(settings: Partial<AppSettings>): AppSettings {
     voiceInputEnabled: settings.voiceInputEnabled ?? defaultSettings.voiceInputEnabled,
     voiceInputProvider:
       settings.voiceInputProvider ??
-      (mergedProviders.zhipu?.apiKey ? 'zhipu' : defaultSettings.voiceInputProvider),
+      (mergedProviders.zhipu?.apiKey
+        ? 'zhipu'
+        : mergedProviders.iflytek?.apiKey && mergedProviders.iflytek?.appId && mergedProviders.iflytek?.apiSecret
+          ? 'iflytek'
+          : defaultSettings.voiceInputProvider),
     voiceInputOptimize: settings.voiceInputOptimize ?? defaultSettings.voiceInputOptimize,
     voiceInputLanguage: settings.voiceInputLanguage ?? defaultSettings.voiceInputLanguage,
     voiceInputShortcut: settings.voiceInputShortcut ?? defaultSettings.voiceInputShortcut,

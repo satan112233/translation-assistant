@@ -17,6 +17,8 @@ export interface ProviderConfig {
   apiKey: string
   baseUrl: string
   model: string
+  appId?: string
+  apiSecret?: string
 }
 
 export interface ShortcutSettings {
@@ -45,7 +47,7 @@ export interface AppSettings {
   popupPinned: boolean
   autoCopyResult: boolean
   voiceInputEnabled: boolean
-  voiceInputProvider: 'local' | 'zhipu'
+  voiceInputProvider: 'local' | 'zhipu' | 'iflytek'
   voiceInputOptimize: boolean
   voiceInputLanguage: 'auto' | LanguageCode
   voiceInputShortcut: string

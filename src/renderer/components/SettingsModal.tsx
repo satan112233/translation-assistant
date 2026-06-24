@@ -258,12 +258,13 @@ export function SettingsPanel() {
                 <div className="flex gap-2">
                   {[
                     { value: 'zhipu', label: '智谱 AI', desc: '需配置智谱 API Key' },
+                    { value: 'iflytek', label: '科大讯飞', desc: '需配置 AppID / APIKey / APISecret' },
                     { value: 'local', label: '本地 whisper.cpp', desc: '需本地二进制和模型' },
                   ].map(({ value, label, desc }) => (
                     <button
                       key={value}
                       onClick={() => {
-                        const next = { ...draft, voiceInputProvider: value as 'zhipu' | 'local' }
+                        const next = { ...draft, voiceInputProvider: value as 'zhipu' | 'iflytek' | 'local' }
                         setDraft(next)
                         void persist(next)
                       }}
@@ -280,6 +281,45 @@ export function SettingsPanel() {
                   ))}
                 </div>
               </div>
+
+              {draft.voiceInputProvider === 'iflytek' && (
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-3">
+                  <h3 className="text-sm font-medium text-gray-800 dark:text-gray-100">科大讯飞配置</h3>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">AppID</label>
+                    <input
+                      type="text"
+                      value={draft.providers.iflytek?.appId || ''}
+                      onChange={(e) => updateProvider('iflytek', 'appId', e.target.value)}
+                      onBlur={saveDraft}
+                      placeholder="输入讯飞开放平台 AppID"
+                      className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">APIKey</label>
+                    <input
+                      type="password"
+                      value={draft.providers.iflytek?.apiKey || ''}
+                      onChange={(e) => updateProvider('iflytek', 'apiKey', e.target.value)}
+                      onBlur={saveDraft}
+                      placeholder="输入讯飞开放平台 APIKey"
+                      className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">APISecret</label>
+                    <input
+                      type="password"
+                      value={draft.providers.iflytek?.apiSecret || ''}
+                      onChange={(e) => updateProvider('iflytek', 'apiSecret', e.target.value)}
+                      onBlur={saveDraft}
+                      placeholder="输入讯飞开放平台 APISecret"
+                      className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
                 <div>
@@ -475,6 +515,32 @@ export function SettingsPanel() {
                   className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              {activeProvider === 'iflytek' && (
+                <>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">AppID</label>
+                    <input
+                      type="text"
+                      value={activeConfig.appId || ''}
+                      onChange={(e) => updateProvider(activeProvider, 'appId', e.target.value)}
+                      onBlur={saveDraft}
+                      placeholder="输入 AppID"
+                      className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">API Secret</label>
+                    <input
+                      type="password"
+                      value={activeConfig.apiSecret || ''}
+                      onChange={(e) => updateProvider(activeProvider, 'apiSecret', e.target.value)}
+                      onBlur={saveDraft}
+                      placeholder="输入 API Secret"
+                      className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </>
+              )}
               <div>
                 <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Base URL</label>
                 <input
