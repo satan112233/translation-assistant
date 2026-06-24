@@ -122,7 +122,7 @@ const store = new Store<{
         deepseek: {
           apiKey: '',
           baseUrl: 'https://api.deepseek.com',
-          model: 'deepseek-chat',
+          model: 'deepseek-v4-flash',
         },
         openai: {
           apiKey: '',

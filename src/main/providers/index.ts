@@ -5,7 +5,7 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
   deepseek: {
     apiKey: '',
     baseUrl: 'https://api.deepseek.com',
-    model: 'deepseek-chat',
+    model: 'deepseek-v4-flash',
   },
   openai: {
     apiKey: '',
