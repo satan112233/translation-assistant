@@ -101,7 +101,7 @@ When `settings.voiceInputOptimize` is enabled, the raw ASR text is sent to DeepS
 
 The **voice dictionary** (`settings.voiceDictionary`, type `VoiceDictionaryEntry[]` with `{ id, word, note? }`) is a personal vocabulary list dedicated to ASR correction (people's names, acronyms, project codenames) — distinct from the translation glossary. It is managed in `VoiceDictionaryPanel` (left sidebar, "语音词典") and persisted via the `get-voice-dictionary` / `set-voice-dictionary` IPC channels.
 
-The `ggml-base-q8_0.gguf` model (~75MB) is downloaded on first use for local mode to `app.getPath('userData')/whisper/models/`.
+The `ggml-base-q8_0.gguf` model (~75MB) is downloaded on first use for local mode to `app.getPath('userData')/whisper/models/`. The downloader tries the HuggingFace source first and falls back to `hf-mirror.com` if the primary source is unreachable; users can also manually place the model file in that directory.
 
 Voice input can be enabled/disabled, the provider chosen, optimization toggled, and its language hint configured in `SettingsPanel`.
 

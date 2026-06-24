@@ -6,7 +6,10 @@ import path from 'node:path'
 import type { LanguageCode, TranscribeAudioRequest, TranscribeAudioResult } from '../shared/types'
 
 const MODEL_NAME = 'ggml-base-q8_0.gguf'
-const MODEL_URL = `https://huggingface.co/ggml-org/whisper.cpp/resolve/main/${MODEL_NAME}`
+const MODEL_URLS = [
+  `https://huggingface.co/ggml-org/whisper.cpp/resolve/main/${MODEL_NAME}`,
+  `https://hf-mirror.com/ggml-org/whisper.cpp/resolve/main/${MODEL_NAME}`,
+]
 const WHISPER_TIMEOUT_MS = 30_000
 
 let activeWhisperProcess: ReturnType<typeof spawn> | null = null
@@ -103,18 +106,26 @@ async function ensureModel(): Promise<string> {
 
   console.log('[whisper] model not found, downloading...')
   ensureDir(getModelDir())
-  try {
-    await downloadFile(MODEL_URL, modelPath)
-    console.log('[whisper] model downloaded to', modelPath)
-    return modelPath
-  } catch (error) {
-    if (existsSync(modelPath)) {
-      rmSync(modelPath, { force: true })
+
+  let lastError: Error | undefined
+  for (const url of MODEL_URLS) {
+    try {
+      console.log('[whisper] trying download from', url)
+      await downloadFile(url, modelPath)
+      console.log('[whisper] model downloaded to', modelPath)
+      return modelPath
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      console.error(`[whisper] failed to download from ${url}:`, lastError.message)
+      if (existsSync(modelPath)) {
+        rmSync(modelPath, { force: true })
+      }
     }
-    throw new Error(
-      `模型下载失败：${error instanceof Error ? error.message : String(error)}。请手动下载 ${MODEL_NAME}（约 75MB）放到 ${getModelDir()}`
-    )
   }
+
+  throw new Error(
+    `模型下载失败：${lastError?.message || '所有镜像源均不可用'}。请手动下载 ${MODEL_NAME}（约 75MB）放到 ${getModelDir()}`
+  )
 }
 
 function toWhisperLanguage(language: 'auto' | LanguageCode | undefined): string {
