@@ -10,6 +10,7 @@ const MODEL_NAME = 'sherpa-onnx-paraformer-zh-small-2024-03-09'
 const MODEL_ARCHIVE = `${MODEL_NAME}.tar.bz2`
 const MODEL_URLS = [
   `https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/${MODEL_ARCHIVE}`,
+  `https://ghfast.top/https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/${MODEL_ARCHIVE}`,
 ]
 const SHERPA_TIMEOUT_MS = 60_000
 
