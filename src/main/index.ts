@@ -439,18 +439,19 @@ function closeVoiceWindow(): void {
 }
 
 function createRecordingPopupWindow(): void {
+  // Show on whichever monitor the cursor is on, but pin the popup to a fixed
+  // spot: horizontally centered, near the bottom just above the taskbar.
   const cursorPoint = screen.getCursorScreenPoint()
   const display = screen.getDisplayNearestPoint(cursorPoint)
   const workArea = display.workArea
 
   const width = 280
   const height = 210
+  const bottomMargin = 16
 
-  let x = cursorPoint.x - Math.floor(width / 2)
-  let y = cursorPoint.y - 130
-
-  x = Math.max(workArea.x, Math.min(x, workArea.x + workArea.width - width))
-  y = Math.max(workArea.y, Math.min(y, workArea.y + workArea.height - height))
+  // workArea already excludes the taskbar, so its bottom edge sits right above it.
+  const x = workArea.x + Math.floor((workArea.width - width) / 2)
+  const y = workArea.y + workArea.height - height - bottomMargin
 
   if (recordingPopupWin) {
     recordingPopupWin.close()

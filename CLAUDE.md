@@ -89,7 +89,7 @@ The recognized-text result is delivered to the main process via `global-voice-re
 For each voice hotkey:
 
 - Inside the main window, the local `RecordingPanel` appears at the bottom-center (cancel button, sound-wave animation, confirm button).
-- Outside the main window, `createRecordingPopupWindow()` creates a `RecordingPopup` near the cursor. The popup is styled like `PopupPanel` (title bar + content area) and shows recording / transcribing states.
+- Outside the main window, `createRecordingPopupWindow()` creates a `RecordingPopup` at a fixed spot — horizontally centered and near the bottom (just above the taskbar) of whichever monitor the cursor is on. The popup is styled like `PopupPanel` (title bar + content area) and shows recording / transcribing states.
 
 `settings.voiceInputProvider` selects the recognition backend:
 
