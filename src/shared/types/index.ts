@@ -52,7 +52,7 @@ export interface AppSettings {
   voiceDictionary: VoiceDictionaryEntry[]
   popupPinned: boolean
   voiceInputEnabled: boolean
-  voiceInputProvider: 'local' | 'zhipu' | 'iflytek'
+  voiceInputProvider: 'local' | 'zhipu' | 'iflytek' | 'sherpa'
   voiceInputOptimize: boolean
   voiceInputLanguage: 'auto' | LanguageCode
   voiceInputShortcut: string

@@ -206,11 +206,12 @@ export function SettingsPanel() {
                     { value: 'zhipu', label: '智谱 AI', desc: '需配置智谱 API Key' },
                     { value: 'iflytek', label: '科大讯飞', desc: '需配置 AppID / APIKey / APISecret' },
                     { value: 'local', label: '本地 whisper.cpp', desc: '需本地二进制和模型' },
+                    { value: 'sherpa', label: '本地 Sherpa', desc: '本地 ONNX 识别，中文效果更好' },
                   ].map(({ value, label, desc }) => (
                     <button
                       key={value}
                       onClick={() => {
-                        const next = { ...draft, voiceInputProvider: value as 'zhipu' | 'iflytek' | 'local' }
+                        const next = { ...draft, voiceInputProvider: value as 'zhipu' | 'iflytek' | 'local' | 'sherpa' }
                         setDraft(next)
                         void persist(next)
                       }}

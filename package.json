@@ -1,7 +1,7 @@
 {
   "name": "translation-assistant",
   "private": true,
-  "version": "0.16.13",
+  "version": "0.16.14",
   "description": "A lightweight Windows desktop translation assistant powered by OpenAI-compatible LLM APIs.",
   "author": "Translation Assistant Dev",
   "type": "module",
@@ -33,6 +33,13 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "resources/sherpa-onnx",
+        "to": "sherpa-onnx",
+        "filter": [
+          "**/*"
+        ]
       }
     ]
   },
@@ -44,6 +51,7 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "tailwind-merge": "^3.6.0",
+    "tar": "^7.5.16",
     "tesseract.js": "^7.0.0",
     "ws": "^8.21.0",
     "zustand": "^5.0.14"
@@ -53,6 +61,7 @@
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/tar": "^6.1.13",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.5.0",
