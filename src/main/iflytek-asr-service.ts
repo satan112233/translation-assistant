@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 import WebSocket from 'ws'
 import type { LanguageCode, ProviderConfig } from '../shared/types'
 
-const IFLYTEK_HOST = 'iat.cn-huabei-1.xf-yun.com'
+const IFLYTEK_HOST = 'iat.xf-yun.com'
 const IFLYTEK_PATH = '/v1'
 const IFLYTEK_URL = `wss://${IFLYTEK_HOST}${IFLYTEK_PATH}`
 
@@ -76,12 +76,9 @@ function buildAuthUrl(apiKey: string, apiSecret: string): string {
   return `${IFLYTEK_URL}?authorization=${encodeURIComponent(authorization)}&date=${encodeURIComponent(date)}&host=${encodeURIComponent(IFLYTEK_HOST)}`
 }
 
-function languageToIflytekLn(language: 'auto' | LanguageCode | undefined): string | undefined {
-  if (language === 'auto' || !language) {
-    // Allow auto-detection across the three supported languages
-    return 'zh|en|ja'
-  }
-  return language
+function languageToIflytekLang(): string {
+  // 中英识别大模型固定使用 zh_cn，支持中文、英文及方言自动识别
+  return 'zh_cn'
 }
 
 function parseResponseText(response: IflytekResponse): string {
@@ -95,8 +92,8 @@ function parseResponseText(response: IflytekResponse): string {
 
 function getIflytekErrorMessage(code: number, originalMessage: string): string {
   const messages: Record<number, string> = {
-    11201: '日调用额度已用完或未领取免费额度（licc failed）。请前往讯飞开放平台对应服务页面领取免费额度或购买套餐。',
-    11200: '没有调用权限（auth no license）。请确认应用已开通「大模型多语种语音识别」服务。',
+    11201: '日调用额度已用完或未领取免费额度（licc failed）。请前往讯飞开放平台「中英识别大模型」服务页面领取免费额度或购买套餐。',
+    11200: '没有调用权限（auth no license）。请确认应用已开通「中英识别大模型」服务。',
     10005: '应用授权失败（licc fail）。请检查 AppID 是否正确，以及是否已开通对应服务。',
     10010: '接口超时，请稍后重试。',
     10114: '请求参数错误，请检查音频格式是否为 16kHz 16bit 单声道 PCM。',
@@ -108,7 +105,7 @@ function getIflytekErrorMessage(code: number, originalMessage: string): string {
 export async function transcribeWithIflytek(
   audioBase64: string,
   config: IflytekAsrConfig,
-  language?: 'auto' | LanguageCode
+  _language?: 'auto' | LanguageCode
 ): Promise<string> {
   const { appId, apiKey, apiSecret } = config
 
@@ -123,9 +120,9 @@ export async function transcribeWithIflytek(
 
   const authUrl = buildAuthUrl(apiKey, apiSecret)
   const sessionUid = crypto.randomUUID().replace(/-/g, '')
-  const ln = languageToIflytekLn(language)
+  const iatLanguage = languageToIflytekLang()
 
-  console.log('[iflytek-asr] connecting with appId:', appId, 'language hint:', ln || 'auto')
+  console.log('[iflytek-asr] connecting with appId:', appId, 'language:', iatLanguage)
 
   return new Promise((resolve, reject) => {
     let fullText = ''
@@ -152,11 +149,10 @@ export async function transcribeWithIflytek(
         parameter: {
           iat: {
             domain: 'slm',
-            language: 'mul_cn',
+            language: iatLanguage,
             accent: 'mandarin',
             eos: 6000,
             dwa: 'wpgs',
-            ...(ln ? { ln } : {}),
           },
         },
         payload: {

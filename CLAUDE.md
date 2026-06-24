@@ -85,7 +85,7 @@ Pressing the configured **voice input shortcut** (default `Ctrl+Alt+V`) toggles 
 `settings.voiceInputProvider` selects the recognition backend:
 
 - `'zhipu'` (default when Zhipu API key is configured): sends audio to Zhipu AI's `glm-asr-2512` ASR endpoint.
-- `'iflytek'`: sends audio to iFlytek's Spark multilingual ASR WebSocket endpoint (`wss://iat.cn-huabei-1.xf-yun.com/v1`). Supports Chinese, English, and Japanese. Requires `appId`, `apiKey`, and `apiSecret` from the iFlytek console.
+- `'iflytek'`: sends audio to iFlytek's Chinese-English ASR WebSocket endpoint (`wss://iat.xf-yun.com/v1`). Supports Chinese and English. Requires `appId`, `apiKey`, and `apiSecret` from the iFlytek console.
 - `'local'`: the main process writes the WAV to a temp file, calls `whisper-cli.exe` from `resources/whisper/` (packaged via `extraResources`), and returns the transcribed text.
 
 When `settings.voiceInputOptimize` is enabled, the raw ASR text is sent to DeepSeek via `src/main/utils/speech-optimizer.ts` to remove filler words, repetitions, and oral clutter, producing concise written text before it is returned to the renderer. The pair `{ rawText, optimizedText }` is saved to `store.get('speechOptimizations')` (max 20 records) so users can review the before/after in the `SpeechOptimizationPanel` accessible from the left sidebar.
