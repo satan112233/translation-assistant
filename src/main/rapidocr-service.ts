@@ -43,6 +43,7 @@ function parseResultFile(resultPath: string): string {
 function runRapidOcr(exePath: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
     activeRapidOcrProcess = spawn(exePath, args, { windowsHide: true })
+    let stdout = ''
     let stderr = ''
     const timeout = setTimeout(() => {
       if (activeRapidOcrProcess && !activeRapidOcrProcess.killed) {
@@ -50,6 +51,10 @@ function runRapidOcr(exePath: string, args: string[]): Promise<string> {
       }
       reject(new Error('OCR 识别超时，请重试'))
     }, RAPIDOCR_TIMEOUT_MS)
+
+    activeRapidOcrProcess.stdout?.on('data', (data: Buffer) => {
+      stdout += data.toString()
+    })
 
     activeRapidOcrProcess.stderr?.on('data', (data: Buffer) => {
       stderr += data.toString()
@@ -59,7 +64,8 @@ function runRapidOcr(exePath: string, args: string[]): Promise<string> {
       activeRapidOcrProcess = null
       clearTimeout(timeout)
       if (code !== 0) {
-        reject(new Error(stderr.trim() || `RapidOcrOnnx 退出码 ${code}`))
+        const output = (stderr.trim() || stdout.trim()) || `RapidOcrOnnx 退出码 ${code}`
+        reject(new Error(output))
         return
       }
       resolve('')
@@ -84,11 +90,17 @@ export async function recognizeImage(imageBase64: string): Promise<string> {
   const modelsDir = getModelsDir()
   const tempDir = app.getPath('temp')
   const timestamp = Date.now()
-  const imagePath = path.join(tempDir, `ta-ocr-${timestamp}.png`)
+
+  // FileReader.readAsDataURL produces a data URL like "data:image/png;base64,...".
+  // RapidOcrOnnx expects raw image bytes, so strip the prefix and detect the format.
+  const dataUrlMatch = imageBase64.match(/^data:image\/(\w+);base64,/)
+  const base64Data = dataUrlMatch ? imageBase64.slice(dataUrlMatch[0].length) : imageBase64
+  const ext = dataUrlMatch ? (dataUrlMatch[1] === 'jpeg' ? 'jpg' : dataUrlMatch[1]) : 'png'
+  const imagePath = path.join(tempDir, `ta-ocr-${timestamp}.${ext}`)
   const resultPath = `${imagePath}-result.txt`
 
   try {
-    writeFileSync(imagePath, Buffer.from(imageBase64, 'base64'))
+    writeFileSync(imagePath, Buffer.from(base64Data, 'base64'))
 
     // RapidOcrOnnx treats --models as the base directory and appends
     // --det/--cls/--rec/--keys filenames to it automatically.

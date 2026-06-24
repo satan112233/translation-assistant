@@ -1,7 +1,7 @@
 {
   "name": "translation-assistant",
   "private": true,
-  "version": "0.17.13",
+  "version": "0.17.14",
   "description": "A lightweight Windows desktop translation assistant powered by OpenAI-compatible LLM APIs.",
   "author": "Translation Assistant Dev",
   "type": "module",
