@@ -133,7 +133,7 @@ const defaultSettings: AppSettings = {
   voiceDictionary: [],
   popupPinned: false,
   voiceInputEnabled: true,
-  voiceInputProvider: 'local',
+  voiceInputProvider: 'sherpa',
   voiceInputOptimize: true,
   voiceInputLanguage: 'auto',
   voiceInputShortcut: 'Ctrl+Alt+V',
@@ -171,7 +171,7 @@ function mergeWithDefaults(settings: Partial<AppSettings>): AppSettings {
     popupPinned: settings.popupPinned ?? defaultSettings.popupPinned,
     voiceInputEnabled: settings.voiceInputEnabled ?? defaultSettings.voiceInputEnabled,
     voiceInputProvider:
-      settings.voiceInputProvider ??
+      (settings.voiceInputProvider === 'local' ? 'sherpa' : settings.voiceInputProvider) ??
       (mergedProviders.zhipu?.apiKey
         ? 'zhipu'
         : mergedProviders.iflytek?.apiKey && mergedProviders.iflytek?.appId && mergedProviders.iflytek?.apiSecret

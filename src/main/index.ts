@@ -5,7 +5,6 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import koffi from 'koffi'
 import Store from 'electron-store'
 import { createProvider } from './providers'
-import { terminateActiveWhisperProcess, transcribeAudio as transcribeWithWhisper } from './whisper-service'
 import { terminateActiveSherpaProcess, transcribeAudio as transcribeWithSherpa } from './sherpa-onnx-service'
 import { transcribeWithZhipu } from './zhipu-asr-service'
 import { transcribeWithIflytek } from './iflytek-asr-service'
@@ -91,7 +90,7 @@ const store = new Store<{
     voiceDictionary: VoiceDictionaryEntry[]
     popupPinned: boolean
     voiceInputEnabled: boolean
-    voiceInputProvider: 'local' | 'zhipu' | 'iflytek' | 'sherpa'
+    voiceInputProvider: 'zhipu' | 'iflytek' | 'sherpa'
     voiceInputOptimize: boolean
     voiceInputLanguage: 'auto' | 'zh' | 'en' | 'ja'
     voiceInputShortcut: string
@@ -162,7 +161,7 @@ const store = new Store<{
       voiceDictionary: [],
       popupPinned: false,
       voiceInputEnabled: true,
-      voiceInputProvider: 'local',
+      voiceInputProvider: 'sherpa',
       voiceInputOptimize: true,
       voiceInputLanguage: 'auto',
       voiceInputShortcut: 'Ctrl+Alt+V',
@@ -1172,7 +1171,7 @@ ipcMain.handle('ocr-image', async (_event, imageBase64: string) => {
 ipcMain.handle('transcribe-audio', async (_event, request: TranscribeAudioRequest) => {
   try {
     const settings = store.get('settings')
-    const provider = settings.voiceInputProvider || 'local'
+    const provider = settings.voiceInputProvider || 'sherpa'
     let rawText = ''
 
     if (provider === 'zhipu') {
@@ -1194,16 +1193,11 @@ ipcMain.handle('transcribe-audio', async (_event, request: TranscribeAudioReques
         }
       )
       console.log('[main] iFlytek ASR result:', rawText.slice(0, 50))
-    } else if (provider === 'sherpa') {
+    } else {
       console.log('[main] starting Sherpa-onnx transcription...')
       const result = await transcribeWithSherpa(request)
       rawText = result.text
       console.log('[main] Sherpa-onnx result:', rawText.slice(0, 50))
-    } else {
-      console.log('[main] starting whisper.cpp transcription...')
-      const result = await transcribeWithWhisper(request)
-      rawText = result.text
-      console.log('[main] transcription result:', rawText.slice(0, 50))
     }
 
     if (!isMeaningfulSpeechText(rawText)) {
@@ -1295,7 +1289,6 @@ app.on('before-quit', async () => {
   closeVoiceWindow()
   closeRecordingPopupWindow()
   tray?.destroy()
-  terminateActiveWhisperProcess()
   terminateActiveSherpaProcess()
   if (ocrWorker) {
     try {

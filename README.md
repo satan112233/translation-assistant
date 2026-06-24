@@ -74,7 +74,7 @@
 - 应用内录音时，窗口底部居中弹出浮动录音面板：左 X 取消、中声音波动动画、右 ✓ 完成。
 - 应用外（如浏览器、编辑器）按 `Ctrl + Alt + V` 会在屏幕底部居中弹出透明的圆角药丸录音浮层，与应用内录音面板样式一致：左取消、中声波动画、右完成，同样支持取消 / 完成。
 - **取消**会立即停止录音并丢弃音频，不会识别、不会优化、不会粘贴；**完成**会停止录音并继续识别 → 优化 → 填入输入框（应用内）/ 粘贴到外部窗口（应用外）。
-- 支持**智谱 AI ASR、科大讯飞 ASR**、本地 whisper.cpp 或本地 Sherpa-onnx（Paraformer 中英）四种识别服务。
+- 支持**智谱 AI ASR、科大讯飞 ASR**或本地 Sherpa-onnx（SenseVoice，中/英/日/韩/粤语）三种识别服务。
 - 可选开启「口语内容优化」，使用 DeepSeek 对口语识别结果进行润色：去除填充词和多余重复、处理改口、优化措辞，使其自然清晰流畅，同时保留用户的表达原意。
   - **智能改口识别**：说话中途纠正（如"三点……不对，是十点"）时，只保留最终正确的表述，自动丢弃被否定的内容。
   - **标点口令与自动格式化**：说"逗号/句号/换行/新段落"等会转成真正的标点和分段；并列要点会自动整理成列表。
@@ -151,21 +151,15 @@ npm run dev
 - 支持中文、英文识别，中文场景准确率更高
 - 无需本地二进制文件和模型
 
-**方式三：本地 whisper.cpp**
+**方式三：本地 Sherpa-onnx（SenseVoice，中/英/日/韩/粤语）**
 - 完全离线，无需联网
-- 需要准备 whisper.cpp 的 Windows 可执行文件：
-  1. 自行编译 [whisper.cpp](https://github.com/ggml-org/whisper.cpp) 得到 `whisper-cli.exe`，或从可信来源获取 Windows 预编译版本。
-  2. 将 `whisper-cli.exe` 放到项目 `resources/whisper/whisper-cli.exe`。
-  3. 首次使用语音输入时，应用会自动下载 `ggml-base-q8_0.gguf` 模型（约 75MB）到用户数据目录。
-
-**方式四：本地 Sherpa-onnx（Paraformer 中英）**
-- 完全离线，无需联网；中文识别效果通常优于 whisper.cpp
+- 识别结果带标点符号，支持数字规范化（ITN）
 - 需要准备 Sherpa-onnx 的 Windows 可执行文件：
   1. 从 [sherpa-onnx releases](https://github.com/k2-fsa/sherpa-onnx/releases) 下载 Windows x64 预编译包（如 `sherpa-onnx-v1.13.2-win-x64-shared-MD-Release-no-tts.tar.bz2`）。
   2. 将 `bin/sherpa-onnx-offline.exe` 及其依赖 DLL（`onnxruntime.dll`、`onnxruntime_providers_shared.dll`、`sherpa-onnx-c-api.dll`、`sherpa-onnx-cxx-api.dll`）放到项目 `resources/sherpa-onnx/`。
-  3. 首次使用语音输入时，应用会自动从 GitHub 下载 `sherpa-onnx-paraformer-zh-small-2024-03-09` 模型（约 79MB）并解压到用户数据目录。
+  3. 首次使用语音输入时，应用会自动从 GitHub 下载 SenseVoice 模型（约 160MB）并解压到用户数据目录。
 
-打包时 `resources/whisper/` 与 `resources/sherpa-onnx/` 均会通过 `extraResources` 包含在安装目录中。
+打包时 `resources/sherpa-onnx/` 会通过 `extraResources` 包含在安装目录中。
 
 如开启「口语内容优化」，还需要配置 DeepSeek API Key，用于润色口语化识别结果。
 
@@ -216,7 +210,7 @@ npm run dist
 - **electron-store** — 本地设置与历史持久化
 - **koffi** — Windows 原生 API 调用，实现划词复制
 - **tesseract.js** — 离线 OCR 文字识别
-- **whisper.cpp** / **Sherpa-onnx** — 离线语音识别（语音输入转文字）
+- **Sherpa-onnx** — 离线语音识别（语音输入转文字）
 - **DeepSeek** — 口语内容优化、翻译
 
 ---

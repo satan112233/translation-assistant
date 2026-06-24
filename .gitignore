@@ -29,6 +29,4 @@ release
 .claude/
 
 # Voice recognition binaries and models
-resources/whisper/whisper-cli.exe
-resources/whisper/models/*.bin
 resources/ffmpeg/ffmpeg.exe

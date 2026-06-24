@@ -1,7 +1,7 @@
 {
   "name": "translation-assistant",
   "private": true,
-  "version": "0.17.8",
+  "version": "0.17.9",
   "description": "A lightweight Windows desktop translation assistant powered by OpenAI-compatible LLM APIs.",
   "author": "Translation Assistant Dev",
   "type": "module",
@@ -27,13 +27,6 @@
       "dist-electron/**/*"
     ],
     "extraResources": [
-      {
-        "from": "resources/whisper",
-        "to": "whisper",
-        "filter": [
-          "**/*"
-        ]
-      },
       {
         "from": "resources/sherpa-onnx",
         "to": "sherpa-onnx",

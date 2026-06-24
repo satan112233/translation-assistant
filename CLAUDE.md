@@ -20,7 +20,7 @@ There are currently no test scripts configured.
 
 The project is structured around three Electron processes:
 
-- **`src/main/`** — Electron main process. Creates the window, manages the system tray, registers global shortcuts (`Ctrl+Alt+T` for toggle and `Ctrl+Alt+C` for cross-selection), persists settings via `electron-store`, makes all LLM API requests, runs OCR via `tesseract.js`, runs speech recognition via Zhipu ASR, iFlytek ASR, or offline `whisper.cpp`, and saves speech optimization records.
+- **`src/main/`** — Electron main process. Creates the window, manages the system tray, registers global shortcuts (`Ctrl+Alt+T` for toggle and `Ctrl+Alt+C` for cross-selection), persists settings via `electron-store`, makes all LLM API requests, runs OCR via `tesseract.js`, runs speech recognition via Zhipu ASR, iFlytek ASR, or offline Sherpa-onnx, and saves speech optimization records.
 - **`src/preload/`** — Preload script, built as CommonJS. Exposes a typed `window.electronAPI` bridge so the renderer can invoke main-process IPC handlers safely.
 - **`src/renderer/`** — React application. Manages UI state with Zustand and renders the translation interface.
 - **`src/shared/`** — Shared TypeScript types used by both main and renderer.
@@ -35,7 +35,7 @@ The renderer communicates with the main process through these channels:
 - `translate` — Send translation parameters to the main process, which calls a single LLM and returns the result.
 - `translate-multi` — Send parameters for multiple configured providers; the main process calls them in parallel and returns per-provider results.
 - `ocr-image` — Send a base64 image to the main process for OCR text recognition.
-- `transcribe-audio` — Send a base64 WAV audio to the main process for speech-to-text via Zhipu ASR, iFlytek ASR, or whisper.cpp.
+- `transcribe-audio` — Send a base64 WAV audio to the main process for speech-to-text via Zhipu ASR, iFlytek ASR, or Sherpa-onnx.
 - `global-voice-result` — Sent by the hidden `voiceWin` to the main process with the final transcribed (and optionally optimized) text; the main process closes the recording popup and pastes the text into the original foreground window.
 - `stop-global-recording-manual` / `cancel-global-voice` — Sent by `RecordingPopup` when the user clicks confirm/cancel; the main process forwards `start-global-recording` / `stop-global-recording` / `cancel-global-recording` to `voiceWin`.
 - `recording-state` / `recording-popup-state` / `recording-popup-ready` — State synchronization between `voiceWin`, the main process, and `recordingPopupWin`.
@@ -71,7 +71,7 @@ Settings are stored with `electron-store` in the main process. On first load, th
 - The worker loads `chi_sim+eng+jpn` language packs from CDN on first run (~5-6MB). Subsequent OCR requests reuse the worker.
 - The `ocr-image` IPC handler receives a base64 image and returns recognized text.
 
-### Voice Input (whisper.cpp / Zhipu ASR / iFlytek ASR / DeepSeek optimization)
+### Voice Input (Sherpa-onnx / Zhipu ASR / iFlytek ASR / DeepSeek optimization)
 
 The voice input system uses two renderer windows when invoked outside the main app:
 
@@ -97,14 +97,13 @@ For each voice hotkey:
 
 - `'zhipu'` (default when Zhipu API key is configured): sends audio to Zhipu AI's `glm-asr-2512` ASR endpoint.
 - `'iflytek'`: sends audio to iFlytek's Chinese-English ASR WebSocket endpoint (`wss://iat.xf-yun.com/v1`). Supports Chinese and English. Requires `appId`, `apiKey`, and `apiSecret` from the iFlytek console.
-- `'local'`: the main process writes the WAV to a temp file, calls `whisper-cli.exe` from `resources/whisper/` (packaged via `extraResources`), and returns the transcribed text.
-- `'sherpa'`: the main process calls `sherpa-onnx-offline.exe` from `resources/sherpa-onnx/` using the Paraformer Chinese-English model. The model is downloaded from the k2-fsa/sherpa-onnx GitHub release on first use, or can be bundled under `resources/sherpa-onnx/<model-name>/`.
+- `'sherpa'`: the main process calls `sherpa-onnx-offline.exe` from `resources/sherpa-onnx/` using the SenseVoice INT8 model. The model is downloaded from the k2-fsa/sherpa-onnx GitHub release on first use, or can be bundled under `resources/sherpa-onnx/<model-name>/`.
+
+The SenseVoice model (`sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17`, ~160MB) is downloaded on first use for `sherpa` mode to `app.getPath('userData')/sherpa-onnx/`. The downloader uses the official GitHub Release source first and falls back to the `ghfast.top` proxy if the primary source is unreachable; users can also manually place the model directory in that location.
 
 When `settings.voiceInputOptimize` is enabled, the raw ASR text is sent to DeepSeek via `src/main/utils/speech-optimizer.ts` to remove filler words and unnecessary repetitions, polish phrasing for clarity and flow, and produce natural text that still sounds like the user before it is returned to the renderer. The optimizer prompt explicitly handles **self-correction** (when the speaker changes their mind mid-sentence, e.g. "三点……不对，是十点", only the final intent is kept), **punctuation voice commands** (spoken "逗号/句号/换行/新段落" become real punctuation and line breaks), and **auto-formatting** (enumerated points become a list, distinct topics are split into paragraphs). `optimizeSpeech(text, config, glossary?, dictionary?)` also accepts the terminology glossary (`settings.glossary`) and the dedicated voice dictionary (`settings.voiceDictionary`): their words are injected as a "correct spelling reference" so the optimizer fixes ASR mis-recognitions of proper nouns, brand names, and technical terms. The pair `{ rawText, optimizedText }` is saved to `store.get('speechOptimizations')` (max 20 records) so users can review the before/after in the `SpeechOptimizationPanel` accessible from the left sidebar.
 
 The **voice dictionary** (`settings.voiceDictionary`, type `VoiceDictionaryEntry[]` with `{ id, word, note? }`) is a personal vocabulary list dedicated to ASR correction (people's names, acronyms, project codenames) — distinct from the translation glossary. It is managed in `VoiceDictionaryPanel` (left sidebar, "语音词典") and persisted via the `get-voice-dictionary` / `set-voice-dictionary` IPC channels.
-
-The `ggml-base-q8_0.gguf` model (~75MB) is downloaded on first use for local mode to `app.getPath('userData')/whisper/models/`. The downloader tries the HuggingFace source first and falls back to `hf-mirror.com` if the primary source is unreachable; users can also manually place the model file in that directory.
 
 Voice input can be enabled/disabled, the provider chosen, optimization toggled, and its language hint configured in `SettingsPanel`.
 
@@ -172,7 +171,6 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 - Recording popup (external): `src/renderer/components/RecordingPopup.tsx`
 - Speech optimization panel: `src/renderer/components/SpeechOptimizationPanel.tsx`
 - Voice recorder: `src/renderer/components/VoiceRecorder.tsx`
-- Whisper service: `src/main/whisper-service.ts`
 - Voice editor (Speak to Edit): `src/main/utils/voice-editor.ts`
 - Zhipu ASR service: `src/main/zhipu-asr-service.ts`
 - iFlytek ASR service: `src/main/iflytek-asr-service.ts`
@@ -188,7 +186,7 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 Key packaging settings:
 - `files` explicitly includes `dist/**/*` and `dist-electron/**/*` because `dist` is listed in `.gitignore` and would otherwise be excluded by electron-builder, causing the production app to load the source `index.html` and show a blank window.
 - `directories.output` is set to `release` so that electron-builder's output (`win-unpacked`, installer `.exe`, etc.) does not contaminate the renderer build directory (`dist`).
-- Whisper binaries are bundled via `extraResources`.
+- Sherpa-onnx binaries are bundled via `extraResources`.
 
 ## Development & Release Workflow
 
