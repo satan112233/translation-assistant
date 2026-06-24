@@ -413,8 +413,8 @@ function createRecordingPopupWindow(): void {
   const display = screen.getDisplayNearestPoint(cursorPoint)
   const workArea = display.workArea
 
-  const width = 280
-  const height = 210
+  const width = 360
+  const height = 150
   const bottomMargin = 16
 
   // workArea already excludes the taskbar, so its bottom edge sits right above it.
@@ -439,7 +439,7 @@ function createRecordingPopupWindow(): void {
     alwaysOnTop: true,
     type: 'toolbar',
     focusable: false,
-    backgroundColor: '#ffffff',
+    transparent: true,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,

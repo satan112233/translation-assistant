@@ -89,7 +89,7 @@ The recognized-text result is delivered to the main process via `global-voice-re
 For each voice hotkey:
 
 - Inside the main window, the local `RecordingPanel` appears at the bottom-center (cancel button, sound-wave animation, confirm button).
-- Outside the main window, `createRecordingPopupWindow()` creates a `RecordingPopup` at a fixed spot — horizontally centered and near the bottom (just above the taskbar) of whichever monitor the cursor is on. The popup is styled like `PopupPanel` (title bar + content area) and shows recording / transcribing states.
+- Outside the main window, `createRecordingPopupWindow()` creates a transparent `RecordingPopup` at a fixed spot — horizontally centered and near the bottom (just above the taskbar) of whichever monitor the cursor is on. The popup renders the same rounded-2xl "pill" component used by the in-app `RecordingPanel` (circular cancel/confirm buttons, live `SoundWave`, and duration label) so the visual experience is consistent inside and outside the app.
 
 `settings.voiceInputProvider` selects the recognition backend:
 
