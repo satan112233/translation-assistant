@@ -251,7 +251,8 @@ export async function transcribeAudio(request: TranscribeAudioRequest): Promise<
 
     const args = [
       '--tokens', tokens,
-      '--paraformer-model', paraformer,
+      '--paraformer', paraformer,
+      '--model-type', 'paraformer',
       '--num-threads', '4',
       '--debug', '0',
       wavPath,
