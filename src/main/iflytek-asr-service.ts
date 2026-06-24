@@ -1,6 +1,6 @@
 import crypto from 'node:crypto'
 import WebSocket from 'ws'
-import type { LanguageCode, ProviderConfig } from '../shared/types'
+import type { ProviderConfig } from '../shared/types'
 
 const IFLYTEK_HOST = 'iat.xf-yun.com'
 const IFLYTEK_PATH = '/v1'
@@ -11,11 +11,10 @@ interface IflytekAsrConfig extends ProviderConfig {
   apiSecret: string
 }
 
-interface IflytekFrame {
+interface IflytekRequestFrame {
   header: {
     app_id: string
     status: number
-    uid?: string
   }
   parameter?: {
     iat: {
@@ -24,7 +23,11 @@ interface IflytekFrame {
       accent: string
       eos?: number
       dwa?: string
-      ln?: string
+      result?: {
+        encoding: string
+        compress: string
+        format: string
+      }
     }
   }
   payload?: {
@@ -55,13 +58,22 @@ interface IflytekResponse {
       seq: number
       status: number
       text: string
-      ws?: Array<{
-        cw: Array<{
-          w: string
-        }>
-      }>
     }
   }
+}
+
+interface IflytekTextResult {
+  sn: number
+  ls: boolean
+  bg: string
+  ed: string
+  ws: Array<{
+    bg: number
+    cw: Array<{
+      w: string
+      sc: number
+    }>
+  }>
 }
 
 function buildAuthUrl(apiKey: string, apiSecret: string): string {
@@ -76,18 +88,22 @@ function buildAuthUrl(apiKey: string, apiSecret: string): string {
   return `${IFLYTEK_URL}?authorization=${encodeURIComponent(authorization)}&date=${encodeURIComponent(date)}&host=${encodeURIComponent(IFLYTEK_HOST)}`
 }
 
-function languageToIflytekLang(): string {
-  // 中英识别大模型固定使用 zh_cn，支持中文、英文及方言自动识别
-  return 'zh_cn'
+function decodeResultText(text: string): string {
+  try {
+    const decoded = Buffer.from(text, 'base64').toString('utf-8')
+    const result = JSON.parse(decoded) as IflytekTextResult
+    return result.ws.map((ws) => ws.cw.map((cw) => cw.w).join('')).join('')
+  } catch {
+    return ''
+  }
 }
 
 function parseResponseText(response: IflytekResponse): string {
-  if (!response.payload?.result?.ws) {
+  const text = response.payload?.result?.text
+  if (!text) {
     return ''
   }
-  return response.payload.result.ws
-    .map((ws) => ws.cw.map((cw) => cw.w).join(''))
-    .join('')
+  return decodeResultText(text)
 }
 
 function getIflytekErrorMessage(code: number, originalMessage: string): string {
@@ -96,7 +112,9 @@ function getIflytekErrorMessage(code: number, originalMessage: string): string {
     11200: '没有调用权限（auth no license）。请确认应用已开通「中英识别大模型」服务。',
     10005: '应用授权失败（licc fail）。请检查 AppID 是否正确，以及是否已开通对应服务。',
     10010: '接口超时，请稍后重试。',
+    10106: '请求参数格式错误（wrapper output data invalid）。请检查请求 JSON 字段是否完整，特别是 parameter.iat.result 字段。',
     10114: '请求参数错误，请检查音频格式是否为 16kHz 16bit 单声道 PCM。',
+    10404: '服务路由未找到（no category route found）。请确认应用已开通「中英识别大模型」服务并领取额度。',
   }
   const extra = messages[code]
   return extra ? `科大讯飞 ASR 错误 ${code}：${extra}` : `科大讯飞 ASR 错误 ${code}：${originalMessage}`
@@ -104,8 +122,7 @@ function getIflytekErrorMessage(code: number, originalMessage: string): string {
 
 export async function transcribeWithIflytek(
   audioBase64: string,
-  config: IflytekAsrConfig,
-  _language?: 'auto' | LanguageCode
+  config: IflytekAsrConfig
 ): Promise<string> {
   const { appId, apiKey, apiSecret } = config
 
@@ -119,10 +136,8 @@ export async function transcribeWithIflytek(
   }
 
   const authUrl = buildAuthUrl(apiKey, apiSecret)
-  const sessionUid = crypto.randomUUID().replace(/-/g, '')
-  const iatLanguage = languageToIflytekLang()
 
-  console.log('[iflytek-asr] connecting with appId:', appId, 'language:', iatLanguage)
+  console.log('[iflytek-asr] connecting with appId:', appId, 'endpoint:', IFLYTEK_URL)
 
   return new Promise((resolve, reject) => {
     let fullText = ''
@@ -139,20 +154,24 @@ export async function transcribeWithIflytek(
     }, 30000)
 
     ws.on('open', () => {
-      // First frame: header + parameter, no audio data
-      const firstFrame: IflytekFrame = {
+      // First frame: header + parameter + empty audio payload
+      const firstFrame: IflytekRequestFrame = {
         header: {
           app_id: appId,
           status: 0,
-          uid: sessionUid,
         },
         parameter: {
           iat: {
             domain: 'slm',
-            language: iatLanguage,
+            language: 'zh_cn',
             accent: 'mandarin',
             eos: 6000,
             dwa: 'wpgs',
+            result: {
+              encoding: 'utf8',
+              compress: 'raw',
+              format: 'json',
+            },
           },
         },
         payload: {
@@ -168,6 +187,7 @@ export async function transcribeWithIflytek(
         },
       }
       ws.send(JSON.stringify(firstFrame))
+      console.log('[iflytek-asr] first frame sent')
 
       // Send audio frames in chunks
       const chunkSize = 1280
@@ -180,11 +200,10 @@ export async function transcribeWithIflytek(
           const chunk = audioBuffer.slice(offset, end)
           const isLast = end >= audioBuffer.length
 
-          const frame: IflytekFrame = {
+          const frame: IflytekRequestFrame = {
             header: {
               app_id: appId,
               status: isLast ? 2 : 1,
-              uid: sessionUid,
             },
             payload: {
               audio: {
@@ -214,13 +233,14 @@ export async function transcribeWithIflytek(
     ws.on('message', (data: WebSocket.Data) => {
       try {
         const message = JSON.parse(data.toString()) as IflytekResponse
+        console.log('[iflytek-asr] message:', JSON.stringify(message))
 
         if (message.header.code !== 0) {
           isClosed = true
           clearTimeout(timeout)
           ws.close()
-          console.error('[iflytek-asr] error response:', message.header.code, message.header.message)
-          reject(new Error(getIflytekErrorMessage(message.header.code, message.header.message)))
+          const errorText = `${getIflytekErrorMessage(message.header.code, message.header.message)}\n\n原始响应：${JSON.stringify(message)}`
+          reject(new Error(errorText))
           return
         }
 

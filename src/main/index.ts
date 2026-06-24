@@ -1086,8 +1086,7 @@ ipcMain.handle('transcribe-audio', async (_event, request: TranscribeAudioReques
           model: '',
           appId: iflytek?.appId || '',
           apiSecret: iflytek?.apiSecret || '',
-        },
-        request.language
+        }
       )
       console.log('[main] iFlytek ASR result:', rawText.slice(0, 50))
     } else {
