@@ -67,6 +67,8 @@ interface IflytekTextResult {
   ls: boolean
   bg: string
   ed: string
+  pgs?: 'apd' | 'rpl'
+  rg?: number[]
   ws: Array<{
     bg: number
     cw: Array<{
@@ -88,22 +90,35 @@ function buildAuthUrl(apiKey: string, apiSecret: string): string {
   return `${IFLYTEK_URL}?authorization=${encodeURIComponent(authorization)}&date=${encodeURIComponent(date)}&host=${encodeURIComponent(IFLYTEK_HOST)}`
 }
 
-function decodeResultText(text: string): string {
+interface DecodedSegment {
+  sn: number
+  pgs?: 'apd' | 'rpl'
+  rg?: number[]
+  text: string
+}
+
+function parseResultSegment(response: IflytekResponse): DecodedSegment | null {
+  const raw = response.payload?.result?.text
+  if (!raw) {
+    return null
+  }
   try {
-    const decoded = Buffer.from(text, 'base64').toString('utf-8')
+    const decoded = Buffer.from(raw, 'base64').toString('utf-8')
     const result = JSON.parse(decoded) as IflytekTextResult
-    return result.ws.map((ws) => ws.cw.map((cw) => cw.w).join('')).join('')
+    const text = result.ws.map((ws) => ws.cw.map((cw) => cw.w).join('')).join('')
+    return { sn: result.sn, pgs: result.pgs, rg: result.rg, text }
   } catch {
-    return ''
+    return null
   }
 }
 
-function parseResponseText(response: IflytekResponse): string {
-  const text = response.payload?.result?.text
-  if (!text) {
-    return ''
-  }
-  return decodeResultText(text)
+// Assemble the final transcript from segments keyed by serial number, in order.
+function assembleSegments(segments: Map<number, string>): string {
+  return [...segments.keys()]
+    .sort((a, b) => a - b)
+    .map((sn) => segments.get(sn) ?? '')
+    .join('')
+    .trim()
 }
 
 function getIflytekErrorMessage(code: number, originalMessage: string): string {
@@ -140,7 +155,7 @@ export async function transcribeWithIflytek(
   console.log('[iflytek-asr] connecting with appId:', appId, 'endpoint:', IFLYTEK_URL)
 
   return new Promise((resolve, reject) => {
-    let fullText = ''
+    const segments = new Map<number, string>()
     let isClosed = false
 
     const ws = new WebSocket(authUrl)
@@ -244,16 +259,25 @@ export async function transcribeWithIflytek(
           return
         }
 
-        const text = parseResponseText(message)
-        if (text) {
-          fullText += text
+        const segment = parseResultSegment(message)
+        if (segment) {
+          // The server reuses serial numbers when correcting earlier partial
+          // results (`pgs: 'rpl'`). A replacement range (`rg`) tells us which
+          // `sn` values this frame should overwrite.
+          if (segment.pgs === 'rpl' && segment.rg && segment.rg.length >= 2) {
+            const [startSn, endSn] = segment.rg
+            for (let sn = startSn; sn <= endSn; sn++) {
+              segments.delete(sn)
+            }
+          }
+          segments.set(segment.sn, segment.text)
         }
 
         if (message.header.status === 2) {
           isClosed = true
           clearTimeout(timeout)
           ws.close()
-          resolve(fullText.trim())
+          resolve(assembleSegments(segments))
         }
       } catch (error) {
         isClosed = true
@@ -275,7 +299,7 @@ export async function transcribeWithIflytek(
       if (!isClosed) {
         isClosed = true
         clearTimeout(timeout)
-        resolve(fullText.trim())
+        resolve(assembleSegments(segments))
       }
     })
   })
