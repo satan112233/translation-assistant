@@ -84,8 +84,6 @@ export type DrawerView = 'history' | 'favorites' | 'speech-optimization'
 interface UIState {
   activeView: ActiveView
   setActiveView: (view: ActiveView) => void
-  sidebarCollapsed: boolean
-  toggleSidebarCollapsed: () => void
   openDrawer: DrawerView | null
   setOpenDrawer: (drawer: DrawerView | null) => void
 }
@@ -859,8 +857,6 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
 export const useUIStore = create<UIState>((set) => ({
   activeView: 'translate',
   setActiveView: (view) => set({ activeView: view }),
-  sidebarCollapsed: false,
-  toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
   openDrawer: null,
   setOpenDrawer: (drawer) => set({ openDrawer: drawer }),
 }))

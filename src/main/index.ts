@@ -24,6 +24,9 @@ function isMeaningfulSpeechText(text: string): boolean {
 
 process.env.APP_ROOT = path.join(__dirname, '../..')
 
+// App icon (window taskbar + tray). Resolves correctly in both dev and packaged builds.
+const APP_ICON_PATH = path.join(__dirname, '../../build/icon.ico')
+
 // Windows API for simulating copy in cross-selection translation
 const user32 = koffi.load('user32.dll')
 const GetForegroundWindow = user32.func('void *GetForegroundWindow()')
@@ -199,7 +202,7 @@ function createWindow(): void {
     frame: false,
     transparent: false,
     backgroundColor: '#ffffff',
-    ...(process.platform === 'linux' ? { icon: '' } : {}),
+    icon: APP_ICON_PATH,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -600,9 +603,14 @@ async function handleCrossSelection(): Promise<void> {
 }
 
 function createTray(): void {
-  // Use a simple 16x16 blank image as tray icon (will work on Windows)
-  const emptyIcon = nativeImage.createEmpty()
-  tray = new Tray(emptyIcon)
+  // Build the tray icon from the app icon, resized to 16x16 for the system tray.
+  let trayIcon = nativeImage.createFromPath(APP_ICON_PATH)
+  if (!trayIcon.isEmpty()) {
+    trayIcon = trayIcon.resize({ width: 16, height: 16 })
+  } else {
+    trayIcon = nativeImage.createEmpty()
+  }
+  tray = new Tray(trayIcon)
   tray.setToolTip('翻译助手')
   tray.setContextMenu(
     Menu.buildFromTemplate([

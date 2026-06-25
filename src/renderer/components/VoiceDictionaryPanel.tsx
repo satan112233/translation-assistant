@@ -120,38 +120,38 @@ export function VoiceDictionaryPanel() {
           <div className="p-4 space-y-3">
             <div>
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">词条（正确写法）</label>
-              <input
-                type="text"
+              <textarea
                 value={wordDraft}
                 onChange={(e) => setWordDraft(e.target.value)}
                 placeholder="如 PyTorch、K8s、李铁柱"
-                className="w-full h-8 px-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                rows={2}
+                className="w-full px-2 py-1.5 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
                 autoFocus
               />
             </div>
             <div>
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">备注（可选）</label>
-              <input
-                type="text"
+              <textarea
                 value={noteDraft}
                 onChange={(e) => setNoteDraft(e.target.value)}
                 placeholder="添加备注说明"
-                className="w-full h-8 px-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                rows={3}
+                className="w-full px-2 py-1.5 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
-            <div className="flex gap-2 pt-1">
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                onClick={cancelEdit}
+                className="h-8 px-4 text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+              >
+                取消
+              </button>
               <button
                 onClick={() => void saveEntry()}
                 disabled={!wordDraft.trim()}
-                className="flex-1 h-8 text-xs text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors"
+                className="h-8 px-4 text-xs text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors"
               >
                 保存
-              </button>
-              <button
-                onClick={cancelEdit}
-                className="flex-1 h-8 text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
-              >
-                取消
               </button>
             </div>
           </div>
