@@ -44,15 +44,16 @@
 
 ## 🖼️ 界面预览
 
-<!-- 在此处放置应用截图，建议放在 docs/screenshots/ 目录下，例如：
 <div align="center">
-  <img src="docs/screenshots/main.png" alt="主界面" width="80%" />
+  <img src="docs/screenshots/main.png" alt="翻译助手主界面" width="80%" />
+</div>
+
+<!-- 还可继续补充划词弹窗、语音浮层等截图，例如：
+<div align="center">
   <img src="docs/screenshots/popup.png" alt="划词翻译" width="45%" />
   <img src="docs/screenshots/voice.png" alt="语音输入" width="45%" />
 </div>
 -->
-
-> 📷 截图待补充——欢迎运行后截一张主界面、划词弹窗和语音浮层放在这里。
 
 ---
 
