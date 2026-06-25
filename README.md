@@ -8,7 +8,10 @@
 
 输入即翻译 · 选中即翻译 · 截图即翻译 · 开口即翻译
 
+[![⬇️ 下载最新版](https://img.shields.io/badge/⬇️_下载最新版-Windows_安装包-2ea44f?style=for-the-badge)](https://github.com/satan112233/translation-assistant/releases/latest)
+
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+[![Release](https://img.shields.io/github/v/release/satan112233/translation-assistant?color=blue)](https://github.com/satan112233/translation-assistant/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6?logo=windows&logoColor=white)](#-快速开始)
 [![Electron](https://img.shields.io/badge/Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
@@ -124,13 +127,25 @@
 
 ## 🚀 快速开始
 
-### 环境要求
+### 📥 直接下载使用（推荐普通用户）
+
+前往 **[Releases 页面](https://github.com/satan112233/translation-assistant/releases/latest)** 下载最新的 `Translation-Assistant-Setup-x.y.z.exe`，双击安装即可（Windows 10 / 11）。
+
+> ⚠️ 安装包未做数字签名，首次运行时 Windows SmartScreen 可能提示风险，点击「更多信息 → 仍要运行」即可。
+
+安装后打开应用 → 左侧「设置」→ 选择模型提供商并填入 API Key（推荐 [DeepSeek](https://platform.deepseek.com/)，便宜好用），即可开始翻译。
+
+---
+
+### 🧑‍💻 从源码运行（开发者）
+
+#### 环境要求
 
 - Windows 10 / 11
 - Node.js 20+
 - 任意一个 OpenAI 兼容的 API Key（推荐 [DeepSeek](https://platform.deepseek.com/)，便宜好用）
 
-### 安装与运行
+#### 安装与运行
 
 ```bash
 # 克隆项目
@@ -175,6 +190,13 @@ npm run dev
 ```bash
 npm run dist   # 生成 Windows 安装程序（.exe），产物在 release/ 目录
 ```
+
+> 💡 若打包卡在下载 electron / NSIS 工具（GitHub 连接不稳），改用国内镜像：
+> ```bash
+> ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ \
+> ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ \
+> npm run dist
+> ```
 
 ---
 

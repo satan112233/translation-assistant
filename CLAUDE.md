@@ -190,6 +190,30 @@ Key packaging settings:
 - `directories.output` is set to `release` so that electron-builder's output (`win-unpacked`, installer `.exe`, etc.) does not contaminate the renderer build directory (`dist`).
 - Sherpa-onnx and RapidOcrOnnx binaries/models are bundled via `extraResources`.
 
+### Packaging behind an unreliable GitHub connection (China network)
+
+On this machine, GitHub (`140.82.x.x`) is frequently unreachable, which makes `npm run dist` **hang at the `packaging` step** or fail with `Timeout awaiting 'request'` / `connect ETIMEDOUT`. electron-builder needs three things from GitHub during packaging: the `electron` runtime + its checksums (via `@electron/get`), and the `nsis` / `winCodeSign` build tools. Route them all through the npmmirror mirror:
+
+```bash
+ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ \
+ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ \
+npm run dist
+```
+
+- `ELECTRON_MIRROR` covers the electron runtime **and its checksum verification** (without it, packaging still hits github.com to verify a cached electron zip and times out).
+- `ELECTRON_BUILDER_BINARIES_MIRROR` covers `nsis` and `winCodeSign` (needed even for unsigned builds — `winCodeSign` contains `rcedit` used to stamp the exe icon/version).
+- If `winCodeSign` still won't download, fetch it manually and unzip into the electron-builder cache so the build skips the download:
+  ```bash
+  curl -L -o /tmp/wcs.7z https://npmmirror.com/mirrors/electron-builder-binaries/winCodeSign-2.6.0/winCodeSign-2.6.0.7z
+  "<cache>/7zip@1.0.0/.../7za.exe" x /tmp/wcs.7z -o"<cache>/winCodeSign-2.6.0" -y
+  # <cache> = C:\Users\<user>\AppData\Local\electron-builder\Cache
+  # the 2 darwin .dylib symlink errors are harmless for a Windows build
+  ```
+
+### Publishing a GitHub Release
+
+`gh` CLI is not installed. Use the GitHub REST API with the token already stored in git's credential helper (`git credential fill`). Create the release (`POST /repos/{owner}/{repo}/releases`, `target_commitish: master`), then upload the installer to `https://uploads.github.com/repos/{owner}/{repo}/releases/{id}/assets?name=...` with `Content-Type: application/octet-stream`. Repo About description / topics are set via `PATCH /repos/{owner}/{repo}` and `PUT /repos/{owner}/{repo}/topics`. Note: `node` resolves `/tmp` to `D:\tmp` (not git-bash's `/tmp`), so stage temp JSON/body files inside the project dir for cross-tool path consistency.
+
 ## Development & Release Workflow
 
 Whenever a new requirement is implemented or a bug is fixed, the following must be done before considering the change complete:
