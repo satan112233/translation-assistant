@@ -46,11 +46,13 @@
 
 <div align="center">
   <img src="docs/screenshots/main.png" alt="翻译助手主界面" width="80%" />
+  <br /><br />
+  <img src="docs/screenshots/popup.png" alt="划词翻译弹窗" width="60%" />
+  <p><sub>↑ 主界面　·　划词翻译：任意软件选中文字即弹出译窗</sub></p>
 </div>
 
-<!-- 还可继续补充划词弹窗、语音浮层等截图，例如：
+<!-- 还可继续补充语音浮层等截图，例如：
 <div align="center">
-  <img src="docs/screenshots/popup.png" alt="划词翻译" width="45%" />
   <img src="docs/screenshots/voice.png" alt="语音输入" width="45%" />
 </div>
 -->
