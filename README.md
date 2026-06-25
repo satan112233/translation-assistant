@@ -48,14 +48,10 @@
   <img src="docs/screenshots/main.png" alt="翻译助手主界面" width="80%" />
   <br /><br />
   <img src="docs/screenshots/popup.png" alt="划词翻译弹窗" width="60%" />
-  <p><sub>↑ 主界面　·　划词翻译：任意软件选中文字即弹出译窗</sub></p>
+  <br /><br />
+  <img src="docs/screenshots/voice.png" alt="语音录音浮层" width="38%" />
+  <p><sub>↑ 主界面　·　划词翻译：选中文字即弹译窗　·　语音录音浮层：开口即转写</sub></p>
 </div>
-
-<!-- 还可继续补充语音浮层等截图，例如：
-<div align="center">
-  <img src="docs/screenshots/voice.png" alt="语音输入" width="45%" />
-</div>
--->
 
 ---
 
