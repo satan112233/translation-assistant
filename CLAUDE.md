@@ -165,6 +165,8 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 - Sidebar / navigation: `src/renderer/components/Sidebar.tsx`
 - Records drawer (history / favorites / speech-optimization slide-over): `src/renderer/components/Drawer.tsx`
 - Main layout / view switcher: `src/renderer/components/MainLayout.tsx`
+- Language selector: `src/renderer/components/LanguageSelector.tsx`
+- Dropdown component: `src/renderer/components/Dropdown.tsx`
 - Shortcut input component: `src/renderer/components/ShortcutInput.tsx`
 - Confirm dialog: `src/renderer/components/ConfirmDialog.tsx`
 - Error dialog: `src/renderer/components/ErrorDialog.tsx`
@@ -173,6 +175,7 @@ Voice recording distinguishes between **cancel** and **confirm/complete**:
 - Recording popup (external): `src/renderer/components/RecordingPopup.tsx`
 - Speech optimization panel: `src/renderer/components/SpeechOptimizationPanel.tsx`
 - Voice recorder: `src/renderer/components/VoiceRecorder.tsx`
+- SoundWave component: `src/renderer/components/SoundWave.tsx`
 - Voice editor (Speak to Edit): `src/main/utils/voice-editor.ts`
 - RapidOcrOnnx service: `src/main/rapidocr-service.ts`
 - Zhipu ASR service: `src/main/zhipu-asr-service.ts`
