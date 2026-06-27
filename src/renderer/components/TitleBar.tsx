@@ -32,18 +32,18 @@ export function TitleBar() {
   }
 
   return (
-    <div className="h-10 flex items-center justify-between bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 select-none app-drag-region">
+    <div className="h-10 flex items-center justify-between bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 select-none app-drag-region">
       <div className="flex items-center px-4">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">翻译助手</span>
-        <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">({__APP_VERSION__})</span>
+        <span className="text-sm font-semibold text-stone-700 dark:text-stone-200">翻译助手</span>
+        <span className="ml-2 text-xs text-stone-400 dark:text-stone-500">({__APP_VERSION__})</span>
       </div>
-      <div className="flex items-center">
+      <div className="flex items-center gap-0.5 pr-1">
         <button
           onClick={() => setOpenDrawer('history')}
-          className={`h-10 w-10 flex items-center justify-center transition-colors ${
+          className={`h-8 w-8 flex items-center justify-center rounded-full transition-colors ${
             openDrawer === 'history'
-              ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
+              : 'text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'
           }`}
           title="翻译历史"
         >
@@ -51,10 +51,10 @@ export function TitleBar() {
         </button>
         <button
           onClick={() => setOpenDrawer('favorites')}
-          className={`h-10 w-10 flex items-center justify-center transition-colors ${
+          className={`h-8 w-8 flex items-center justify-center rounded-full transition-colors ${
             openDrawer === 'favorites'
-              ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
+              : 'text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'
           }`}
           title="收藏夹"
         >
@@ -62,42 +62,42 @@ export function TitleBar() {
         </button>
         <button
           onClick={() => setOpenDrawer('speech-optimization')}
-          className={`h-10 w-10 flex items-center justify-center transition-colors ${
+          className={`h-8 w-8 flex items-center justify-center rounded-full transition-colors ${
             openDrawer === 'speech-optimization'
-              ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
+              : 'text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'
           }`}
           title="语音优化记录"
         >
           <Sparkles size={15} />
         </button>
 
-        <div className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
+        <div className="mx-1 h-5 w-px bg-stone-200 dark:bg-stone-700" />
 
         <button
           onClick={toggleTheme}
-          className="h-10 w-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="h-8 w-8 flex items-center justify-center rounded-full text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
           title={settings.theme === 'dark' ? '切换浅色' : '切换深色'}
         >
           {settings.theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
         </button>
         <button
           onClick={toggleAlwaysOnTop}
-          className="h-10 w-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="h-8 w-8 flex items-center justify-center rounded-full text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
           title={isAlwaysOnTop ? '取消置顶' : '窗口置顶'}
         >
           {isAlwaysOnTop ? <PinOff size={14} /> : <Pin size={14} />}
         </button>
         <button
           onClick={handleMinimize}
-          className="h-10 w-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="h-8 w-8 flex items-center justify-center rounded-full text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
           title="最小化"
         >
           <Minus size={16} />
         </button>
         <button
           onClick={handleClose}
-          className="h-10 w-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-red-500 hover:text-white transition-colors"
+          className="h-8 w-8 flex items-center justify-center rounded-full text-stone-500 dark:text-stone-400 hover:bg-red-500 hover:text-white transition-colors"
           title="退出"
         >
           <X size={16} />

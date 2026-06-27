@@ -25,39 +25,39 @@ export function ErrorDialog({ isOpen, title = '出错了', message, onClose }: E
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="w-full max-w-md bg-white dark:bg-stone-900 rounded-2xl shadow-xl border border-stone-200 dark:border-stone-700 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200/70 dark:border-stone-700/60">
           <div className="flex items-center gap-2">
             <AlertTriangle size={18} className="text-red-600 dark:text-red-400" />
-            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">{title}</h3>
+            <h3 className="text-base font-semibold text-stone-900 dark:text-stone-100">{title}</h3>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            className="icon-btn"
           >
             <X size={18} />
           </button>
         </div>
 
         <div className="p-5">
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
-            <p className="text-sm text-gray-800 dark:text-gray-200 break-all select-text font-mono leading-relaxed">
+          <div className="bg-stone-100 dark:bg-stone-800 rounded-xl p-3 border border-stone-200 dark:border-stone-700">
+            <p className="text-sm text-stone-800 dark:text-stone-200 break-all select-text font-mono leading-relaxed">
               {message}
             </p>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 px-5 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex justify-end gap-2 px-5 py-4 bg-stone-50 dark:bg-stone-800/50 border-t border-stone-200/70 dark:border-stone-700/60">
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+            className="btn-ghost"
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}
             {copied ? '已复制' : '复制错误信息'}
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-md transition-colors"
+            className="btn-primary"
           >
             确定
           </button>

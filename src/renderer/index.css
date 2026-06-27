@@ -8,6 +8,54 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/*
+ * Typeless-inspired design system.
+ * Warm-neutral (stone) base + black primary. Reusable primitives keep the
+ * ~20 components visually consistent. Dark mode inverts the primary to white.
+ */
+@layer components {
+  /* Black pill primary button (inverts to white in dark mode) */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white;
+  }
+
+  /* Secondary / cancel pill button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-stone-100 px-4 py-2 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700;
+  }
+
+  /* Circular icon button */
+  .icon-btn {
+    @apply inline-flex items-center justify-center rounded-full p-2 text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-700 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200;
+  }
+
+  /* Text input / textarea field */
+  .input-field {
+    @apply w-full rounded-xl border border-stone-200 bg-stone-50 px-3 text-sm text-stone-800 transition-colors placeholder:text-stone-400 focus:border-stone-300 focus:outline-none focus:ring-2 focus:ring-stone-900/10 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:ring-stone-100/15;
+  }
+
+  /* Filled rounded card surface */
+  .card {
+    @apply rounded-2xl border border-stone-200/80 bg-stone-50 dark:border-stone-700/60 dark:bg-stone-800/50;
+  }
+
+  /* Pill segmented control */
+  .segmented {
+    @apply inline-flex items-center gap-1 rounded-full bg-stone-100 p-1 dark:bg-stone-800;
+  }
+  .segmented-item {
+    @apply rounded-full px-3 py-1 text-sm text-stone-500 transition-colors hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200;
+  }
+  .segmented-item-active {
+    @apply bg-white text-stone-900 shadow-sm dark:bg-stone-700 dark:text-stone-100;
+  }
+
+  /* Large bold page heading */
+  .page-title {
+    @apply text-2xl font-bold text-stone-900 dark:text-stone-100;
+  }
+}
+
 body {
   margin: 0;
   min-width: 100vw;

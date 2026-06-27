@@ -59,18 +59,17 @@ export function FavoritesPanel({ onClose }: { onClose?: () => void }) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <Star size={18} className="text-yellow-500" />
-          <span className="text-sm font-medium text-gray-800 dark:text-gray-100">收藏夹</span>
-          <span className="text-xs text-gray-400 dark:text-gray-500">({favorites.length})</span>
+    <div className="flex flex-col h-full bg-white dark:bg-stone-900">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100">收藏夹</h2>
+          <span className="px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-xs font-medium text-stone-500 dark:text-stone-400">{favorites.length}</span>
         </div>
         <div className="flex items-center gap-1">
           {favorites.length > 0 && (
             <button
               onClick={handleExport}
-              className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+              className="icon-btn"
               title="导出收藏"
             >
               <Download size={16} />
@@ -79,7 +78,7 @@ export function FavoritesPanel({ onClose }: { onClose?: () => void }) {
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              className="icon-btn"
               title="关闭"
             >
               <X size={16} />
@@ -88,51 +87,51 @@ export function FavoritesPanel({ onClose }: { onClose?: () => void }) {
         </div>
       </div>
 
-      <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+      <div className="px-5 pb-3">
         <div className="relative">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 dark:text-stone-500" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="搜索收藏..."
-            className="w-full h-8 pl-8 pr-3 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input-field h-9 pl-9"
           />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto px-5 pb-5">
         {!isLoaded ? (
           <div className="flex items-center justify-center h-32">
-            <span className="text-sm text-gray-400 dark:text-gray-500">加载中...</span>
+            <span className="text-sm text-stone-400 dark:text-stone-500">加载中...</span>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500">
+          <div className="flex flex-col items-center justify-center h-48 text-stone-400 dark:text-stone-500">
             <Star size={32} className="mb-2 opacity-40" />
             <span className="text-sm">{searchQuery ? '未找到匹配项' : '暂无收藏'}</span>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+          <div className="space-y-2">
             {filtered.map((record) => (
               <div
                 key={record.id}
                 onClick={() => handleLoad(record)}
-                className="group relative p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                className="group relative p-4 rounded-xl bg-stone-50 dark:bg-stone-800/50 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
               >
                 <button
                   onClick={(e) => void handleDelete(e, record.id)}
-                  className="absolute top-2 right-2 p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-3 right-3 p-1.5 rounded-full text-stone-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-opacity"
                   title="删除收藏"
                 >
                   <Trash2 size={14} />
                 </button>
                 <div className="flex items-center gap-2 mb-1.5 pr-8">
-                  <span className="text-xs px-1.5 py-0.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded">
+                  <span className="text-xs px-2 py-0.5 bg-stone-200/70 dark:bg-stone-700 text-stone-600 dark:text-stone-300 rounded-full">
                     {getLanguageLabel(record.sourceLang)} → {getLanguageLabel(record.targetLang)}
                   </span>
                 </div>
-                <p className="text-sm text-gray-800 dark:text-gray-100 line-clamp-2 mb-1">{record.sourceText}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-1.5">{record.translatedText}</p>
+                <p className="text-sm text-stone-800 dark:text-stone-100 line-clamp-2 mb-1">{record.sourceText}</p>
+                <p className="text-sm text-stone-500 dark:text-stone-400 line-clamp-2 mb-1.5">{record.translatedText}</p>
                 {editingNoteId === record.id ? (
                   <div className="flex gap-1">
                     <input
@@ -148,7 +147,7 @@ export function FavoritesPanel({ onClose }: { onClose?: () => void }) {
                         }
                       }}
                       placeholder="添加备注..."
-                      className="flex-1 h-7 px-2 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="input-field flex-1 h-7 text-xs"
                       autoFocus
                     />
                     <button
@@ -156,7 +155,7 @@ export function FavoritesPanel({ onClose }: { onClose?: () => void }) {
                         e.stopPropagation()
                         void saveNote(record.id)
                       }}
-                      className="px-2 py-0.5 text-xs text-white bg-blue-600 rounded"
+                      className="btn-primary px-3 py-0.5 text-xs"
                     >
                       保存
                     </button>
@@ -167,7 +166,7 @@ export function FavoritesPanel({ onClose }: { onClose?: () => void }) {
                       e.stopPropagation()
                       startEditNote(record)
                     }}
-                    className="text-xs text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 cursor-text"
+                    className="text-xs text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 cursor-text"
                   >
                     {record.note || '点击添加备注...'}
                   </div>

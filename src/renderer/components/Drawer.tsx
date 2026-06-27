@@ -55,7 +55,7 @@ export function Drawer() {
         onClick={close}
       />
       <div
-        className={`absolute top-0 right-0 h-full w-[420px] max-w-[85vw] bg-white dark:bg-gray-800 shadow-2xl transition-transform duration-300 ease-out ${
+        className={`absolute top-0 right-0 h-full w-[420px] max-w-[85vw] bg-white dark:bg-stone-900 shadow-2xl transition-transform duration-300 ease-out ${
           visible ? 'translate-x-0' : 'translate-x-full'
         }`}
       >

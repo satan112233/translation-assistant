@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Settings, Monitor, Sun, Moon, Keyboard, Check, Mic, Eye, EyeOff } from 'lucide-react'
+import { Monitor, Sun, Moon, Keyboard, Check, Mic, Eye, EyeOff } from 'lucide-react'
 import { useSettingsStore } from '../stores'
 import { PROVIDER_LABELS } from '../../main/providers'
 import { LanguageSelector } from './LanguageSelector'
@@ -114,23 +114,20 @@ export function SettingsPanel() {
   const canUseComparisonMode = configuredProviders.length >= 2
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <Settings size={18} className="text-gray-600 dark:text-gray-300" />
-          <h2 className="text-base font-medium text-gray-800 dark:text-gray-100">设置</h2>
-        </div>
+    <div className="flex flex-col h-full bg-white dark:bg-stone-900">
+      <div className="flex items-center justify-between px-6 pt-5 pb-3">
+        <h1 className="page-title">设置</h1>
         {savedIndicator && (
-          <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+          <div className="flex items-center gap-1 text-xs text-stone-500 dark:text-stone-400">
             <Check size={14} />
             <span>已保存</span>
           </div>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-6">
+      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">外观主题</label>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">外观主题</label>
             <div className="flex gap-2">
               {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
                 <button
@@ -143,8 +140,8 @@ export function SettingsPanel() {
                   className={`
                     flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-md border transition-colors
                     ${draft.theme === value
-                      ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300'
-                      : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600'}
+                      ? 'bg-stone-900 dark:bg-stone-100 border-stone-900 dark:border-stone-100 text-white dark:text-stone-900'
+                      : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700'}
                   `}
                 >
                   <Icon size={16} />
@@ -155,7 +152,7 @@ export function SettingsPanel() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">划词翻译默认目标语言</label>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">划词翻译默认目标语言</label>
             <LanguageSelector
               value={draft.popupTargetLang}
               onChange={(lang) => {
@@ -164,15 +161,15 @@ export function SettingsPanel() {
                 void persist(next)
               }}
             />
-            <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">设置划词翻译时默认使用的目标语言。</p>
+            <p className="mt-1.5 text-xs text-stone-500 dark:text-stone-400">设置划词翻译时默认使用的目标语言。</p>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-stone-50 dark:bg-stone-700/50 rounded-lg">
             <div className="flex items-center gap-2">
-              <Mic size={16} className="text-gray-600 dark:text-gray-300" />
+              <Mic size={16} className="text-stone-600 dark:text-stone-300" />
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">语音输入</label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">在翻译输入框显示麦克风按钮，录音后自动转文字</p>
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300">语音输入</label>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">在翻译输入框显示麦克风按钮，录音后自动转文字</p>
               </div>
             </div>
             <button
@@ -184,13 +181,13 @@ export function SettingsPanel() {
               className={`
                 relative inline-flex h-6 w-11 items-center rounded-full transition-colors
                 ${draft.voiceInputEnabled
-                  ? 'bg-blue-600'
-                  : 'bg-gray-300 dark:bg-gray-600'}
+                  ? 'bg-stone-900 dark:bg-stone-100'
+                  : 'bg-stone-300 dark:bg-stone-700'}
               `}
             >
               <span
                 className={`
-                  inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                  inline-block h-4 w-4 transform rounded-full bg-white dark:bg-stone-900 transition-transform
                   ${draft.voiceInputEnabled ? 'translate-x-6' : 'translate-x-1'}
                 `}
               />
@@ -200,7 +197,7 @@ export function SettingsPanel() {
           {draft.voiceInputEnabled && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">语音识别服务</label>
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">语音识别服务</label>
                 <div className="flex gap-2">
                   {[
                     { value: 'zhipu', label: '智谱 AI', desc: '需配置智谱 API Key' },
@@ -217,8 +214,8 @@ export function SettingsPanel() {
                       className={`
                         flex-1 px-3 py-2 text-sm rounded-md border transition-colors text-left
                         ${draft.voiceInputProvider === value
-                          ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300'
-                          : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600'}
+                          ? 'bg-stone-900 dark:bg-stone-100 border-stone-900 dark:border-stone-100 text-white dark:text-stone-900'
+                          : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700'}
                       `}
                     >
                       <span className="block font-medium">{label}</span>
@@ -229,21 +226,21 @@ export function SettingsPanel() {
               </div>
 
               {draft.voiceInputProvider === 'iflytek' && (
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-3">
-                  <h3 className="text-sm font-medium text-gray-800 dark:text-gray-100">科大讯飞配置</h3>
+                <div className="p-4 bg-stone-50 dark:bg-stone-700/50 rounded-lg space-y-3">
+                  <h3 className="text-sm font-medium text-stone-800 dark:text-stone-100">科大讯飞配置</h3>
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">AppID</label>
+                    <label className="block text-xs text-stone-500 dark:text-stone-400 mb-1">AppID</label>
                     <input
                       type="text"
                       value={draft.providers.iflytek?.appId || ''}
                       onChange={(e) => updateProvider('iflytek', 'appId', e.target.value)}
                       onBlur={saveDraft}
                       placeholder="输入讯飞开放平台 AppID"
-                      className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="input-field h-9"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">APIKey</label>
+                    <label className="block text-xs text-stone-500 dark:text-stone-400 mb-1">APIKey</label>
                     <div className="relative">
                       <input
                         type={showIflytekApiKey ? 'text' : 'password'}
@@ -251,12 +248,12 @@ export function SettingsPanel() {
                         onChange={(e) => updateProvider('iflytek', 'apiKey', e.target.value)}
                         onBlur={saveDraft}
                         placeholder="输入讯飞开放平台 APIKey"
-                        className="w-full h-9 px-3 pr-9 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="input-field h-9 pr-9"
                       />
                       <button
                         type="button"
                         onClick={() => setShowIflytekApiKey((prev) => !prev)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
                         tabIndex={-1}
                       >
                         {showIflytekApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -264,7 +261,7 @@ export function SettingsPanel() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">APISecret</label>
+                    <label className="block text-xs text-stone-500 dark:text-stone-400 mb-1">APISecret</label>
                     <div className="relative">
                       <input
                         type={showIflytekApiSecret ? 'text' : 'password'}
@@ -272,12 +269,12 @@ export function SettingsPanel() {
                         onChange={(e) => updateProvider('iflytek', 'apiSecret', e.target.value)}
                         onBlur={saveDraft}
                         placeholder="输入讯飞开放平台 APISecret"
-                        className="w-full h-9 px-3 pr-9 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="input-field h-9 pr-9"
                       />
                       <button
                         type="button"
                         onClick={() => setShowIflytekApiSecret((prev) => !prev)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
                         tabIndex={-1}
                       >
                         {showIflytekApiSecret ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -287,10 +284,10 @@ export function SettingsPanel() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-white dark:bg-stone-700 border border-stone-200 dark:border-stone-600 rounded-lg">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">口语内容优化</label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  <label className="block text-sm font-medium text-stone-700 dark:text-stone-300">口语内容优化</label>
+                  <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
                     使用 DeepSeek 对口语识别结果进行润色：去除填充词和多余重复、处理改口、优化措辞，使其自然清晰流畅，同时保留表达原意
                   </p>
                 </div>
@@ -303,13 +300,13 @@ export function SettingsPanel() {
                   className={`
                     relative inline-flex h-6 w-11 items-center rounded-full transition-colors
                     ${draft.voiceInputOptimize
-                      ? 'bg-blue-600'
-                      : 'bg-gray-300 dark:bg-gray-600'}
+                      ? 'bg-stone-900 dark:bg-stone-100'
+                      : 'bg-stone-300 dark:bg-stone-700'}
                   `}
                 >
                   <span
                     className={`
-                      inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                      inline-block h-4 w-4 transform rounded-full bg-white dark:bg-stone-900 transition-transform
                       ${draft.voiceInputOptimize ? 'translate-x-6' : 'translate-x-1'}
                     `}
                   />
@@ -317,7 +314,7 @@ export function SettingsPanel() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">语音识别语言</label>
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">语音识别语言</label>
                 <LanguageSelector
                   includeAuto
                   value={draft.voiceInputLanguage}
@@ -327,36 +324,36 @@ export function SettingsPanel() {
                     void persist(next)
                   }}
                 />
-                <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <p className="mt-1.5 text-xs text-stone-500 dark:text-stone-400">
                   选择“自动”时由识别服务自行检测语言。
                 </p>
               </div>
 
-              <div className="p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg space-y-2.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">语音全局快捷键</label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-1">
+              <div className="p-3 bg-white dark:bg-stone-700 border border-stone-200 dark:border-stone-600 rounded-lg space-y-2.5">
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300">语音全局快捷键</label>
+                <p className="text-xs text-stone-500 dark:text-stone-400 -mt-1">
                   在翻译助手或任意外部窗口均可使用
                 </p>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600 dark:text-gray-300">语音输入（粘贴原文）</span>
-                  <span className="px-2 py-1 text-xs rounded border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 select-none">Ctrl+Alt+V</span>
+                  <span className="text-xs text-stone-600 dark:text-stone-300">语音输入（粘贴原文）</span>
+                  <span className="px-2 py-1 text-xs rounded border bg-stone-50 dark:bg-stone-600 border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-200 select-none">Ctrl+Alt+V</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600 dark:text-gray-300">语音编辑（改写选中文本）</span>
-                  <span className="px-2 py-1 text-xs rounded border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 select-none">Ctrl+Alt+D</span>
+                  <span className="text-xs text-stone-600 dark:text-stone-300">语音编辑（改写选中文本）</span>
+                  <span className="px-2 py-1 text-xs rounded border bg-stone-50 dark:bg-stone-600 border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-200 select-none">Ctrl+Alt+D</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600 dark:text-gray-300">语音直译（说一种语言出译文）</span>
-                  <span className="px-2 py-1 text-xs rounded border bg-gray-50 dark:bg-gray-600 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 select-none">Ctrl+Alt+F</span>
+                  <span className="text-xs text-stone-600 dark:text-stone-300">语音直译（说一种语言出译文）</span>
+                  <span className="px-2 py-1 text-xs rounded border bg-stone-50 dark:bg-stone-600 border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-200 select-none">Ctrl+Alt+F</span>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-4">
+          <div className="p-4 bg-stone-50 dark:bg-stone-700/50 rounded-lg space-y-4">
             <div className="flex items-center gap-2">
-              <Keyboard size={16} className="text-gray-600 dark:text-gray-300" />
-              <h3 className="text-sm font-medium text-gray-800 dark:text-gray-100">全局快捷键</h3>
+              <Keyboard size={16} className="text-stone-600 dark:text-stone-300" />
+              <h3 className="text-sm font-medium text-stone-800 dark:text-stone-100">全局快捷键</h3>
             </div>
             <ShortcutInput
               label="显示 / 隐藏主窗口"
@@ -402,7 +399,7 @@ export function SettingsPanel() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">默认翻译模型</label>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">默认翻译模型</label>
             <div className="flex gap-2">
               {Object.entries(PROVIDER_LABELS).map(([key, label]) => (
                 <button
@@ -415,8 +412,8 @@ export function SettingsPanel() {
                   className={`
                     flex-1 px-3 py-2 text-sm rounded-md border transition-colors
                     ${draft.defaultProvider === key
-                      ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300'
-                      : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600'}
+                      ? 'bg-stone-900 dark:bg-stone-100 border-stone-900 dark:border-stone-100 text-white dark:text-stone-900'
+                      : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700'}
                   `}
                 >
                   {label}
@@ -425,11 +422,11 @@ export function SettingsPanel() {
             </div>
           </div>
 
-          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-3">
+          <div className="p-4 bg-stone-50 dark:bg-stone-700/50 rounded-lg space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">对比翻译模式</label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">同时调用多个模型展示译文对比</p>
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300">对比翻译模式</label>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">同时调用多个模型展示译文对比</p>
               </div>
               {canUseComparisonMode ? (
                 <button
@@ -441,24 +438,24 @@ export function SettingsPanel() {
                   className={`
                     relative inline-flex h-6 w-11 items-center rounded-full transition-colors
                     ${draft.comparisonMode
-                      ? 'bg-blue-600'
-                      : 'bg-gray-300 dark:bg-gray-600'}
+                      ? 'bg-stone-900 dark:bg-stone-100'
+                      : 'bg-stone-300 dark:bg-stone-700'}
                   `}
                 >
                   <span
                     className={`
-                      inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                      inline-block h-4 w-4 transform rounded-full bg-white dark:bg-stone-900 transition-transform
                       ${draft.comparisonMode ? 'translate-x-6' : 'translate-x-1'}
                     `}
                   />
                 </button>
               ) : (
-                <span className="text-xs text-gray-400 dark:text-gray-500">需配置 ≥2 个模型</span>
+                <span className="text-xs text-stone-400 dark:text-stone-500">需配置 ≥2 个模型</span>
               )}
             </div>
 
             {!canUseComparisonMode && (
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-stone-500 dark:text-stone-400">
                 配置至少两个模型的 API Key 后可开启对比翻译。
               </p>
             )}
@@ -473,65 +470,65 @@ export function SettingsPanel() {
           </div>
 
           {activeConfig && (
-            <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-3">
-              <h3 className="text-sm font-medium text-gray-800 dark:text-gray-100">{PROVIDER_LABELS[activeProvider] || activeProvider} 配置</h3>
+            <div className="p-4 bg-stone-50 dark:bg-stone-700/50 rounded-lg space-y-3">
+              <h3 className="text-sm font-medium text-stone-800 dark:text-stone-100">{PROVIDER_LABELS[activeProvider] || activeProvider} 配置</h3>
               <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">API Key</label>
+                <label className="block text-xs text-stone-500 dark:text-stone-400 mb-1">API Key</label>
                 <input
                   type="password"
                   value={activeConfig.apiKey}
                   onChange={(e) => updateProvider(activeProvider, 'apiKey', e.target.value)}
                   onBlur={saveDraft}
                   placeholder="输入 API Key"
-                  className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input-field h-9"
                 />
               </div>
               {activeProvider === 'iflytek' && (
                 <>
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">AppID</label>
+                    <label className="block text-xs text-stone-500 dark:text-stone-400 mb-1">AppID</label>
                     <input
                       type="text"
                       value={activeConfig.appId || ''}
                       onChange={(e) => updateProvider(activeProvider, 'appId', e.target.value)}
                       onBlur={saveDraft}
                       placeholder="输入 AppID"
-                      className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="input-field h-9"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">API Secret</label>
+                    <label className="block text-xs text-stone-500 dark:text-stone-400 mb-1">API Secret</label>
                     <input
                       type="password"
                       value={activeConfig.apiSecret || ''}
                       onChange={(e) => updateProvider(activeProvider, 'apiSecret', e.target.value)}
                       onBlur={saveDraft}
                       placeholder="输入 API Secret"
-                      className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="input-field h-9"
                     />
                   </div>
                 </>
               )}
               <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Base URL</label>
+                <label className="block text-xs text-stone-500 dark:text-stone-400 mb-1">Base URL</label>
                 <input
                   type="text"
                   value={activeConfig.baseUrl}
                   onChange={(e) => updateProvider(activeProvider, 'baseUrl', e.target.value)}
                   onBlur={saveDraft}
                   placeholder="https://api.example.com/v1"
-                  className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input-field h-9"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">模型</label>
+                <label className="block text-xs text-stone-500 dark:text-stone-400 mb-1">模型</label>
                 <input
                   type="text"
                   value={activeConfig.model}
                   onChange={(e) => updateProvider(activeProvider, 'model', e.target.value)}
                   onBlur={saveDraft}
                   placeholder="模型名称"
-                  className="w-full h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input-field h-9"
                 />
               </div>
             </div>

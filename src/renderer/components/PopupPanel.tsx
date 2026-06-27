@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
-import { X, Copy, Check, ArrowRightLeft, Pin, PinOff } from 'lucide-react'
+import { X, Copy, Check, Pin, PinOff } from 'lucide-react'
 import { useSettingsStore } from '../stores'
 import { PROVIDER_LABELS } from '../../main/providers'
 import { useTheme } from '../hooks/useTheme'
+import { Dropdown } from './Dropdown'
+
+const TARGET_LANG_OPTIONS = [
+  { value: 'zh', label: '中文' },
+  { value: 'en', label: '英语' },
+  { value: 'ja', label: '日语' },
+] as const
 
 export function PopupPanel() {
   const params = new URLSearchParams(window.location.search)
@@ -93,78 +100,79 @@ export function PopupPanel() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-gray-900 overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 app-drag-region">
+    <div className="flex flex-col h-screen bg-stone-50 dark:bg-stone-900 overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 app-drag-region">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{PROVIDER_LABELS[settings.defaultProvider] || settings.defaultProvider}</span>
-          <select
-            value={targetLang}
-            onChange={(e) => handleTargetChange(e.target.value as 'zh' | 'en' | 'ja')}
-            className="h-6 px-1 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded focus:outline-none"
-          >
-            <option value="zh">中文</option>
-            <option value="en">英语</option>
-            <option value="ja">日语</option>
-          </select>
+          <h1 className="text-sm font-bold text-stone-900 dark:text-stone-100">划词翻译</h1>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400">
+            {PROVIDER_LABELS[settings.defaultProvider] || settings.defaultProvider}
+          </span>
         </div>
-        <button
-          onClick={() => void saveSettings({ ...settings, popupPinned: !settings.popupPinned })}
-          className={`
-            p-1 rounded transition-colors
-            ${settings.popupPinned
-              ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-              : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}
-          `}
-          title={settings.popupPinned ? '取消固定' : '固定弹窗'}
-        >
-          {settings.popupPinned ? <Pin size={14} /> : <PinOff size={14} />}
-        </button>
-        <button
-          onClick={handleClose}
-          className="p-1 text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-        >
-          <X size={14} />
-        </button>
+        <div className="flex items-center gap-1">
+          <Dropdown
+            value={targetLang}
+            options={TARGET_LANG_OPTIONS}
+            onChange={(lang) => handleTargetChange(lang as 'zh' | 'en' | 'ja')}
+          />
+          <button
+            onClick={() => void saveSettings({ ...settings, popupPinned: !settings.popupPinned })}
+            className={`
+              icon-btn
+              ${settings.popupPinned
+                ? 'text-stone-900 bg-stone-100 dark:bg-stone-800 dark:text-stone-100'
+                : ''}
+            `}
+            title={settings.popupPinned ? '取消固定' : '固定弹窗'}
+          >
+            {settings.popupPinned ? <Pin size={14} /> : <PinOff size={14} />}
+          </button>
+          <button
+            onClick={handleClose}
+            className="icon-btn"
+          >
+            <X size={14} />
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3">
-        <div className="mb-3">
-          <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">原文</p>
-          <p className="text-sm text-gray-700 dark:text-gray-300 break-words">{initialText}</p>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="p-3 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
+          <p className="text-[10px] font-medium text-stone-400 dark:text-stone-500 mb-1">原文</p>
+          <p className="text-sm text-stone-700 dark:text-stone-200 break-words leading-relaxed">{initialText}</p>
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-6">
-            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2" />
-            <span className="text-sm text-gray-400 dark:text-gray-500">翻译中...</span>
+          <div className="flex items-center justify-center py-5">
+            <div className="w-5 h-5 border-2 border-stone-800 dark:border-stone-200 border-t-transparent rounded-full animate-spin mr-2" />
+            <span className="text-sm text-stone-500 dark:text-stone-400">翻译中...</span>
           </div>
         ) : error ? (
-          <div className="py-4">
+          <div className="p-3 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
             <p className="text-sm text-red-500">{error}</p>
             <button
               onClick={() => void performTranslate(initialText, 'auto', targetLang)}
-              className="mt-2 text-xs text-blue-600 hover:underline"
+              className="mt-2 text-xs text-stone-600 dark:text-stone-300 hover:underline"
             >
               重试
             </button>
           </div>
         ) : result ? (
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs text-gray-400 dark:text-gray-500">译文</p>
+          <div className="p-3 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[10px] font-medium text-stone-400 dark:text-stone-500">译文</p>
               {result.detectedSourceLang && (
-                <span className="text-xs text-gray-400 dark:text-gray-500">
+                <span className="text-[10px] text-stone-400 dark:text-stone-500">
                   检测为 {getLanguageLabel(result.detectedSourceLang)}
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-800 dark:text-gray-100 break-words leading-relaxed mb-2">{result.translatedText}</p>
+            <p className="text-[15px] text-stone-900 dark:text-stone-100 break-words leading-relaxed mb-2">{result.translatedText}</p>
             {result.pronunciation && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">读音：{result.pronunciation}</p>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mb-2">读音：{result.pronunciation}</p>
             )}
             <button
               onClick={() => void handleCopy()}
-              className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
             >
               {copied ? <Check size={12} /> : <Copy size={12} />}
               {copied ? '已复制' : '复制译文'}

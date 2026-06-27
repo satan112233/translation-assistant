@@ -4,7 +4,7 @@ import type { RecordingPopupState } from '../../shared/types'
 import { SoundWave } from './SoundWave'
 
 const PILL_CLASS =
-  'flex items-center gap-4 px-4 py-3 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700'
+  'flex items-center gap-4 px-4 py-3 bg-white dark:bg-stone-900 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700'
 
 export function RecordingPopup() {
   const [state, setState] = useState<RecordingPopupState>({
@@ -41,8 +41,8 @@ export function RecordingPopup() {
       {!hasState ? (
         <div className={PILL_CLASS}>
           <div className="flex items-center gap-3 px-2">
-            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-gray-600 dark:text-gray-300">正在启动...</span>
+            <div className="w-5 h-5 border-2 border-stone-800 dark:border-stone-200 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-stone-600 dark:text-stone-300">正在启动...</span>
           </div>
         </div>
       ) : state.isRecording ? (
@@ -57,15 +57,15 @@ export function RecordingPopup() {
 
           <div className="flex flex-col items-center gap-1 min-w-[120px] max-w-[180px]">
             {modeLabel && (
-              <span className="text-xs font-medium text-blue-500 dark:text-blue-400">{modeLabel}</span>
+              <span className="text-xs font-medium text-stone-500 dark:text-stone-400">{modeLabel}</span>
             )}
             <SoundWave level={state.audioLevel ?? 0} />
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-stone-500 dark:text-stone-400">
               录制中 {state.recordingDuration}s
             </span>
             {state.mode === 'edit' && state.editPreview && (
               <span
-                className="max-w-full truncate text-[11px] text-gray-400 dark:text-gray-500"
+                className="max-w-full truncate text-[11px] text-stone-400 dark:text-stone-500"
                 title={state.editPreview}
               >
                 编辑：{state.editPreview}
@@ -75,7 +75,7 @@ export function RecordingPopup() {
 
           <button
             onClick={handleStop}
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 text-green-500 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
             title="完成录音"
           >
             <Check size={20} />
@@ -84,8 +84,8 @@ export function RecordingPopup() {
       ) : (
         <div className={PILL_CLASS}>
           <div className="flex items-center gap-3 px-2">
-            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-gray-600 dark:text-gray-300">
+            <div className="w-5 h-5 border-2 border-stone-800 dark:border-stone-200 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-stone-600 dark:text-stone-300">
               {state.processingLabel ?? (state.isTranscribing ? '识别中...' : '处理中...')}
             </span>
           </div>

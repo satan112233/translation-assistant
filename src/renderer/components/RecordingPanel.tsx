@@ -9,7 +9,7 @@ export function RecordingPanel() {
 
   return (
     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
-      <div className="flex items-center gap-4 px-4 py-3 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
+      <div className="flex items-center gap-4 px-4 py-3 bg-white dark:bg-stone-900 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700">
         {isRecording ? (
           <>
             <button
@@ -22,14 +22,14 @@ export function RecordingPanel() {
 
             <div className="flex flex-col items-center gap-1 min-w-[120px]">
               <SoundWave level={audioLevel} />
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-xs text-stone-500 dark:text-stone-400">
                 录制中 {recordingDuration}s
               </span>
             </div>
 
             <button
               onClick={() => stopRecording()}
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 text-green-500 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
               title="完成录音"
             >
               <Check size={20} />
@@ -37,8 +37,8 @@ export function RecordingPanel() {
           </>
         ) : (
           <div className="flex items-center gap-3 px-2">
-            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-gray-600 dark:text-gray-300">识别中...</span>
+            <div className="w-5 h-5 border-2 border-stone-800 dark:border-stone-200 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-stone-600 dark:text-stone-300">识别中...</span>
           </div>
         )}
       </div>

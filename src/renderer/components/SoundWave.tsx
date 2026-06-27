@@ -62,7 +62,7 @@ export function SoundWave({ level }: { level: number }) {
           ref={(el) => {
             refs.current[i] = el
           }}
-          className="w-[3px] bg-blue-500 dark:bg-blue-400 rounded-full"
+          className="w-[3px] bg-stone-700 dark:bg-stone-300 rounded-full"
           style={{ height: `${MIN_H}px` }}
         />
       ))}

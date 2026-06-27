@@ -29,17 +29,17 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   render() {
     if (this.state.error) {
       return (
-        <div className="flex flex-col h-screen p-6 bg-white dark:bg-gray-900 overflow-auto">
+        <div className="flex flex-col h-screen p-6 bg-white dark:bg-stone-900 overflow-auto">
           <p className="text-red-500 font-semibold mb-2">应用渲染出错</p>
-          <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+          <p className="text-sm text-stone-700 dark:text-stone-300 mb-4">
             请把下面的报错信息复制给我：
           </p>
-          <pre className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 p-3 rounded whitespace-pre-wrap break-all">
+          <pre className="text-xs bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 p-3 rounded-xl whitespace-pre-wrap break-all">
             {this.state.error.stack || this.state.error.message}
           </pre>
           <button
             onClick={() => this.setState({ error: null })}
-            className="mt-4 self-start px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
+            className="btn-primary mt-4 self-start"
           >
             重试
           </button>
@@ -69,17 +69,17 @@ function App() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen p-8 bg-white dark:bg-gray-900">
+      <div className="flex items-center justify-center h-screen p-8 bg-white dark:bg-stone-900">
         <div className="text-center">
           <p className="text-red-500 mb-2">应用加载出错</p>
-          <p className="text-sm text-gray-600 dark:text-gray-300">{error}</p>
+          <p className="text-sm text-stone-600 dark:text-stone-300">{error}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-white dark:bg-gray-900">
+    <div className="flex flex-col h-screen overflow-hidden bg-white dark:bg-stone-900">
       <TitleBar />
       <ErrorBoundary>
         <MainLayout />
